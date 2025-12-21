@@ -41,9 +41,9 @@
             this.lblConnState = new DevExpress.XtraEditors.LabelControl();
             this.svgConn = new DevExpress.XtraEditors.SvgImageBox();
             this.panelMain = new DevExpress.XtraEditors.PanelControl();
-            this.txtInput = new DevExpress.XtraEditors.TextEdit();
-            this.txtOutput = new DevExpress.XtraEditors.TextEdit();
-            this.btnOku = new DevExpress.XtraEditors.SimpleButton();
+            this.simpleButton1 = new DevExpress.XtraEditors.SimpleButton();
+            this.btnSagTorc = new DevExpress.XtraEditors.SimpleButton();
+            this.btnSolTorc = new DevExpress.XtraEditors.SimpleButton();
             ((System.ComponentModel.ISupportInitialize)(this.panelHeader)).BeginInit();
             this.panelHeader.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.panelFooter)).BeginInit();
@@ -55,8 +55,6 @@
             this.panelControl1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.svgConn)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.panelMain)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtInput.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtOutput.Properties)).BeginInit();
             this.SuspendLayout();
             // 
             // btnAyarlar
@@ -73,14 +71,14 @@
             // 
             // panelHeader
             // 
-            this.panelHeader.Controls.Add(this.btnOku);
-            this.panelHeader.Controls.Add(this.txtOutput);
-            this.panelHeader.Controls.Add(this.txtInput);
+            this.panelHeader.Controls.Add(this.simpleButton1);
+            this.panelHeader.Controls.Add(this.btnSagTorc);
+            this.panelHeader.Controls.Add(this.btnSolTorc);
             this.panelHeader.Controls.Add(this.btnAyarlar);
             this.panelHeader.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelHeader.Location = new System.Drawing.Point(0, 0);
             this.panelHeader.Name = "panelHeader";
-            this.panelHeader.Size = new System.Drawing.Size(1128, 99);
+            this.panelHeader.Size = new System.Drawing.Size(1128, 187);
             this.panelHeader.TabIndex = 1;
             // 
             // panelFooter
@@ -167,36 +165,52 @@
             // panelMain
             // 
             this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelMain.Location = new System.Drawing.Point(0, 99);
+            this.panelMain.Location = new System.Drawing.Point(0, 187);
             this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(1128, 565);
+            this.panelMain.Size = new System.Drawing.Size(1128, 477);
             this.panelMain.TabIndex = 3;
             // 
-            // txtInput
+            // simpleButton1
             // 
-            this.txtInput.Location = new System.Drawing.Point(51, 42);
-            this.txtInput.Name = "txtInput";
-            this.txtInput.Size = new System.Drawing.Size(100, 20);
-            this.txtInput.TabIndex = 1;
+            this.simpleButton1.Appearance.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold);
+            this.simpleButton1.Appearance.Options.UseFont = true;
+            this.simpleButton1.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.simpleButton1.ImageOptions.AllowGlyphSkinning = DevExpress.Utils.DefaultBoolean.False;
+            this.simpleButton1.ImageOptions.Image = global::KaynakMakinesi.UI.Properties.Resources.kazan_sıkıstırma;
+            this.simpleButton1.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.simpleButton1.Location = new System.Drawing.Point(346, 12);
+            this.simpleButton1.Name = "simpleButton1";
+            this.simpleButton1.Size = new System.Drawing.Size(160, 160);
+            this.simpleButton1.TabIndex = 3;
+            this.simpleButton1.Text = "Sol Torç";
             // 
-            // txtOutput
+            // btnSagTorc
             // 
-            this.txtOutput.Location = new System.Drawing.Point(51, 68);
-            this.txtOutput.Name = "txtOutput";
-            this.txtOutput.Size = new System.Drawing.Size(100, 20);
-            this.txtOutput.TabIndex = 2;
+            this.btnSagTorc.Appearance.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold);
+            this.btnSagTorc.Appearance.Options.UseFont = true;
+            this.btnSagTorc.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnSagTorc.ImageOptions.AllowGlyphSkinning = DevExpress.Utils.DefaultBoolean.False;
+            this.btnSagTorc.ImageOptions.Image = global::KaynakMakinesi.UI.Properties.Resources.torc_sag_ayar__130_x_130_piksel_;
+            this.btnSagTorc.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnSagTorc.Location = new System.Drawing.Point(180, 12);
+            this.btnSagTorc.Name = "btnSagTorc";
+            this.btnSagTorc.Size = new System.Drawing.Size(160, 160);
+            this.btnSagTorc.TabIndex = 2;
+            this.btnSagTorc.Text = "Sol Torç";
             // 
-            // btnOku
+            // btnSolTorc
             // 
-            this.btnOku.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnOku.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
-            this.btnOku.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("simpleButton1.ImageOptions.SvgImage")));
-            this.btnOku.Location = new System.Drawing.Point(170, 11);
-            this.btnOku.Name = "btnOku";
-            this.btnOku.Size = new System.Drawing.Size(102, 77);
-            this.btnOku.TabIndex = 3;
-            this.btnOku.Text = "Oku";
-            this.btnOku.Click += new System.EventHandler(this.btnOku_Click);
+            this.btnSolTorc.Appearance.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold);
+            this.btnSolTorc.Appearance.Options.UseFont = true;
+            this.btnSolTorc.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnSolTorc.ImageOptions.AllowGlyphSkinning = DevExpress.Utils.DefaultBoolean.False;
+            this.btnSolTorc.ImageOptions.Image = global::KaynakMakinesi.UI.Properties.Resources.torc_sol_ayar__130_x_130_piksel_;
+            this.btnSolTorc.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnSolTorc.Location = new System.Drawing.Point(12, 12);
+            this.btnSolTorc.Name = "btnSolTorc";
+            this.btnSolTorc.Size = new System.Drawing.Size(160, 160);
+            this.btnSolTorc.TabIndex = 1;
+            this.btnSolTorc.Text = "Sağ Torç";
             // 
             // MainForm
             // 
@@ -221,8 +235,6 @@
             this.panelControl1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.svgConn)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.panelMain)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtInput.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtOutput.Properties)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -241,9 +253,9 @@
         private DevExpress.XtraEditors.SvgImageBox svgConn;
         private DevExpress.XtraEditors.PanelControl panelControl2;
         private DevExpress.XtraEditors.ListBoxControl listLogs;
-        private DevExpress.XtraEditors.TextEdit txtInput;
-        private DevExpress.XtraEditors.TextEdit txtOutput;
-        private DevExpress.XtraEditors.SimpleButton btnOku;
+        private DevExpress.XtraEditors.SimpleButton btnSolTorc;
+        private DevExpress.XtraEditors.SimpleButton btnSagTorc;
+        private DevExpress.XtraEditors.SimpleButton simpleButton1;
     }
 }
 

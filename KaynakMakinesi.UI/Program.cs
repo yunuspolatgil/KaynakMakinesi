@@ -15,6 +15,7 @@ using KaynakMakinesi.Infrastructure.Settings;
 using KaynakMakinesi.Infrastructure.Tags;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -44,8 +45,8 @@ namespace KaynakMakinesi.UI
                 }
                 catch { }
 
-                MessageBox.Show("Kritik hata oluştu. (Loglara yazıldı)", "Kritik", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                // Not: Bu eventten sonra .NET Framework süreç sonlandırabilir; asıl çözüm: arka plan döngülerinde try/catch.
+                MessageBox.Show("Kritik hata oluştu. (Loglara yazıldı)", "Kritik",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             };
 
             TaskScheduler.UnobservedTaskException += (s, e) =>
@@ -59,6 +60,8 @@ namespace KaynakMakinesi.UI
 
             // --- Composition Root ---
             var appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "KaynakMakinesi");
+            Directory.CreateDirectory(appFolder);
+
             var settingsPath = Path.Combine(appFolder, "appsettings.json");
 
             var settingsStore = new JsonFileSettingsStore(settingsPath);
@@ -83,21 +86,35 @@ namespace KaynakMakinesi.UI
             var plcClient = new ModbusPlcClient();
             var supervisor = new PlcConnectionSupervisor(settingsStore, plcClient, logger);
 
-            
+            // Jobs
+            var jobRepo = new SqliteJobRepository(db);
+            var runner = new JobRunner(jobRepo, supervisor, plcClient, logger);
 
             // Resolver + Codec + Service
             IAddressResolver resolver = new AddressResolver(profile, tagRepo);
-            IModbusCodec codec = new ModbusCodec(); // gerekiyorsa SwapWordsFor32Bit=true yaparız
+            var codec = new ModbusCodec
+            {
+                SwapWordsFor32Bit = true,   // SENİN PLC İÇİN GEREKLİ
+                SwapBytesInWord = false
+            };
+            IModbusCodec iCodec = codec;
+
             var modbusService = new ModbusService(plcClient, resolver, codec, settingsStore, logger);
 
-            // Jobs
-            var jobRepo = new SqliteJobRepository(db);
-            var runner = new JobRunner(jobRepo, supervisor, modbusService, logger);
-
+            // Start background loops
             supervisor.Start();
             runner.Start();
 
-           System.Windows.Forms.Application.Run(new MainForm(settingsStore, inMemSink, supervisor, logger, modbusService));
+            // App exit cleanup
+           System.Windows.Forms.Application.ApplicationExit += (s, e) =>
+            {
+                try { runner.Stop(); } catch { }
+
+                try { plcClient.DisconnectAsync(CancellationToken.None).Wait(500); } catch { }
+                try { plcClient.Dispose(); } catch { }
+            };
+
+            System.Windows.Forms.Application.Run(new MainForm(settingsStore, inMemSink, supervisor, logger, modbusService));
         }
     }
 }

@@ -6,6 +6,7 @@ using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Plc;
 using Newtonsoft.Json;
 
+
 namespace KaynakMakinesi.Application.Jobs
 {
     public sealed class JobRunner

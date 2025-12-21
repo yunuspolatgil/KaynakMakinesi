@@ -76,7 +76,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Db\SqliteDb.cs" />
-    <Compile Include="Jobs\JobRunner.cs" />
     <Compile Include="Jobs\SqliteJobRepository.cs" />
     <Compile Include="Logging\AppLogger.cs" />
     <Compile Include="Logging\InMemoryLogSink.cs" />

@@ -7,20 +7,21 @@ namespace KaynakMakinesi.Application.Plc.Codec
 {
     public sealed class ModbusCodec : IModbusCodec
     {
-        public bool SwapWordsFor32Bit { get; set; } = false;
+        // Senin PLC örneğinde kesin lazım:
+        public bool SwapWordsFor32Bit { get; set; } = true;
+
+        // Şimdilik kapalı kalsın (gerekirse açarız)
+        public bool SwapBytesInWord { get; set; } = false;
 
         public object Decode(ValueType type, ushort[] regs)
         {
-            if (type == ValueType.Bool)
-                throw new InvalidOperationException("Bool decode registers ile yapılmaz.");
-
             if (regs == null || regs.Length == 0)
                 throw new ArgumentException("Register boş.");
 
             switch (type)
             {
                 case ValueType.UShort:
-                    return regs[0];
+                    return NormalizeWord(regs[0]);
 
                 case ValueType.Int32:
                     EnsureLen(regs, 2);
@@ -31,7 +32,7 @@ namespace KaynakMakinesi.Application.Plc.Codec
                     return ToFloat(regs[0], regs[1]);
 
                 default:
-                    throw new NotSupportedException();
+                    throw new NotSupportedException("Bool decode burada yapılmaz (coil/di).");
             }
         }
 
@@ -40,57 +41,79 @@ namespace KaynakMakinesi.Application.Plc.Codec
             switch (type)
             {
                 case ValueType.UShort:
-                    return new[] { Convert.ToUInt16(value) };
+                    return new[] { NormalizeWord(Convert.ToUInt16(value)) };
 
                 case ValueType.Int32:
-                    {
-                        var v = Convert.ToInt32(value);
-                        var bytes = BitConverter.GetBytes(v); // little-endian
-                        // Modbus register: high byte + low byte => big-endian word kabulü yapıyoruz
-                        ushort w1 = (ushort)((bytes[3] << 8) | bytes[2]);
-                        ushort w2 = (ushort)((bytes[1] << 8) | bytes[0]);
-                        return SwapWordsFor32Bit ? new[] { w2, w1 } : new[] { w1, w2 };
-                    }
+                    return FromInt32(Convert.ToInt32(value));
 
                 case ValueType.Float:
-                    {
-                        var f = Convert.ToSingle(value);
-                        var bytes = BitConverter.GetBytes(f);
-                        ushort w1 = (ushort)((bytes[3] << 8) | bytes[2]);
-                        ushort w2 = (ushort)((bytes[1] << 8) | bytes[0]);
-                        return SwapWordsFor32Bit ? new[] { w2, w1 } : new[] { w1, w2 };
-                    }
+                    return FromFloat(Convert.ToSingle(value));
 
                 default:
-                    throw new NotSupportedException("Bool write için coil kullanılmalı.");
+                    throw new NotSupportedException("Bool encode coil ile yazılır.");
             }
         }
 
-        private int ToInt32(ushort r1, ushort r2)
+        private ushort NormalizeWord(ushort w)
         {
-            if (SwapWordsFor32Bit) { var t = r1; r1 = r2; r2 = t; }
-
-            // r1 high word, r2 low word
-            var bytes = new byte[4];
-            bytes[3] = (byte)(r1 >> 8);
-            bytes[2] = (byte)(r1 & 0xFF);
-            bytes[1] = (byte)(r2 >> 8);
-            bytes[0] = (byte)(r2 & 0xFF);
-
-            return BitConverter.ToInt32(bytes, 0);
+            if (!SwapBytesInWord) return w;
+            return (ushort)((w >> 8) | (w << 8));
         }
 
-        private float ToFloat(ushort r1, ushort r2)
+        private int ToInt32(ushort r0, ushort r1)
         {
-            if (SwapWordsFor32Bit) { var t = r1; r1 = r2; r2 = t; }
+            r0 = NormalizeWord(r0);
+            r1 = NormalizeWord(r1);
 
+            if (SwapWordsFor32Bit) { var t = r0; r0 = r1; r1 = t; }
+
+            // r0 = high word, r1 = low word
+            int hi = r0 << 16;
+            int lo = r1;
+            return hi | lo;
+        }
+
+        private float ToFloat(ushort r0, ushort r1)
+        {
+            r0 = NormalizeWord(r0);
+            r1 = NormalizeWord(r1);
+
+            if (SwapWordsFor32Bit) { var t = r0; r0 = r1; r1 = t; }
+
+            // 32-bit int üzerinden float'a
             var bytes = new byte[4];
-            bytes[3] = (byte)(r1 >> 8);
-            bytes[2] = (byte)(r1 & 0xFF);
-            bytes[1] = (byte)(r2 >> 8);
-            bytes[0] = (byte)(r2 & 0xFF);
+            bytes[0] = (byte)(r1 & 0xFF);
+            bytes[1] = (byte)(r1 >> 8);
+            bytes[2] = (byte)(r0 & 0xFF);
+            bytes[3] = (byte)(r0 >> 8);
 
             return BitConverter.ToSingle(bytes, 0);
+        }
+
+        private ushort[] FromInt32(int v)
+        {
+            // hi word / lo word
+            ushort hi = (ushort)((v >> 16) & 0xFFFF);
+            ushort lo = (ushort)(v & 0xFFFF);
+
+            hi = NormalizeWord(hi);
+            lo = NormalizeWord(lo);
+
+            return SwapWordsFor32Bit ? new[] { lo, hi } : new[] { hi, lo };
+        }
+
+        private ushort[] FromFloat(float f)
+        {
+            var bytes = BitConverter.GetBytes(f);
+
+            // bytes little-endian => word’lere çevir
+            ushort lo = (ushort)(bytes[0] | (bytes[1] << 8));
+            ushort hi = (ushort)(bytes[2] | (bytes[3] << 8));
+
+            hi = NormalizeWord(hi);
+            lo = NormalizeWord(lo);
+
+            return SwapWordsFor32Bit ? new[] { lo, hi } : new[] { hi, lo };
         }
 
         private void EnsureLen(ushort[] regs, int len)

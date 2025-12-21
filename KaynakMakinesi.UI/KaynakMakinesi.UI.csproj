@@ -109,6 +109,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="SettingsForm.resx">
       <DependentUpon>SettingsForm.cs</DependentUpon>
@@ -139,6 +140,30 @@
       <Project>{7d8273fb-7b6e-4785-b2a4-e0f616ae4d9d}</Project>
       <Name>KaynakMakinesi.Infrastructure</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\kalibrasyon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\kalbrasyon-98px.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\torc_sag_ayar .png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\torc_sol_ayar .png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\torc_sol_ayar %28130 x 130 piksel%29 %281%29.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\torc_sol_ayar %28130 x 130 piksel%29.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\torc_sag_ayar %28130 x 130 piksel%29.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\kazan-sıkıstırma.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

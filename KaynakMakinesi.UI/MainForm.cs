@@ -60,7 +60,7 @@ namespace KaynakMakinesi.UI
             lblConnReason.Text = reason ?? "-";
 
             if (state == ConnectionState.Connected)
-                lblLastOk.Text = "Last OK: " + DateTime.Now.ToString("HH:mm:ss");
+                lblLastOk.Text = "Son İşlem: " + DateTime.Now.ToString("HH:mm:ss");
 
             // İkonu state’e göre değiştir (istersen renk de verirsin)
             // svgConn.SvgImage = ... (projene bir-iki svg ekle, burada seç)
@@ -69,7 +69,7 @@ namespace KaynakMakinesi.UI
         private void UpdatePlcTargetFromSettings()
         {
             var s = _settingsStore.Load();
-            lblPlcTarget.Text = $"{s.Plc.Ip}:{s.Plc.Port} (Unit:{s.Plc.UnitId})";
+            lblPlcTarget.Text = $"{s.Plc.Ip}:{s.Plc.Port} (Slave:{s.Plc.UnitId})";
         }
 
         private void LogSink_EntryAdded(object sender, LogEntry e)
@@ -107,25 +107,13 @@ namespace KaynakMakinesi.UI
             BeginInvoke((Action)(() => UpdateConnUi(e.State, e.Reason)));
         }
        
-        private  void MainForm_Load(object sender, EventArgs e)
+        private async void MainForm_Load(object sender, EventArgs e)
         {
+            var r = await _modbusService.ReadAutoAsync("42013", CancellationToken.None);
+            lblConnState.Text = r.Success ? r.Value?.ToString() : r.Error;
+
         }
 
-        private async void btnOku_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                var ok = await _modbusService.ReadAutoAsync(
-        "10001",
-        System.Threading.CancellationToken.None);
 
-                lblConnState.Text = ok.Success ? ok.Value.ToString() : "Yazma başarısız";
-            }
-            catch (Exception ex)
-            {
-                lblConnState.Text = "Kritik: " + ex.Message;
-                
-            }
-        }
     }
 }

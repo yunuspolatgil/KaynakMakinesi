@@ -32,42 +32,70 @@ namespace KaynakMakinesi.Application.Plc.Service
 
         public async Task<bool> WriteTextAsync(string input, string valueText, CancellationToken ct)
         {
-            var rr = _resolver.Resolve(input);
-            if (!rr.Success) return false;
-
-            var a = rr.Address;
-
-            object value;
-
-            // Bool: "1/0/true/false/on/off" hepsini kabul et
-            if (a.Type == ValueType.Bool)
+            try
             {
-                value = ParseBool(valueText);
-                return await WriteAutoAsync(input, value, ct);
-            }
+                var rr = _resolver.Resolve(input);
+                if (!rr.Success) return false;
 
-            // Sayısal tipler
-            if (a.Type == ValueType.UShort)
+                var a = rr.Address;
+                if (a.ReadOnly) return false;
+
+                valueText = (valueText ?? "").Trim();
+
+                object value;
+
+                if (a.Type == ValueType.Bool)
+                {
+                    if (!TryParseBool(valueText, out var b)) return false;
+                    value = b;
+                    return await WriteAutoAsync(input, value, ct);
+                }
+
+                if (a.Type == ValueType.UShort)
+                {
+                    if (!ushort.TryParse(valueText, out var us)) return false;
+                    value = us;
+                    return await WriteAutoAsync(input, value, ct);
+                }
+
+                if (a.Type == ValueType.Int32)
+                {
+                    if (!int.TryParse(valueText, out var i)) return false;
+                    value = i;
+                    return await WriteAutoAsync(input, value, ct);
+                }
+
+                if (a.Type == ValueType.Float)
+                {
+                    // Türkçe ondalık desteği + güvenli parse
+                    valueText = valueText.Replace(',', '.');
+                    if (!float.TryParse(valueText, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var f))
+                        return false;
+
+                    value = f;
+                    return await WriteAutoAsync(input, value, ct);
+                }
+
+                return false;
+            }
+            catch (Exception ex)
             {
-                value = ushort.Parse(valueText);
-                return await WriteAutoAsync(input, value, ct);
+                _log.Error(nameof(ModbusService), $"WriteText fail input={input}", ex);
+                return false;
             }
+        }
 
-            if (a.Type == ValueType.Int32)
-            {
-                value = int.Parse(valueText);
-                return await WriteAutoAsync(input, value, ct);
-            }
+        private bool TryParseBool(string s, out bool value)
+        {
+            value = false;
+            if (string.IsNullOrWhiteSpace(s)) return false;
 
-            if (a.Type == ValueType.Float)
-            {
-                // Türkçe ondalık desteği
-                valueText = valueText.Replace(',', '.');
-                value = float.Parse(valueText, System.Globalization.CultureInfo.InvariantCulture);
-                return await WriteAutoAsync(input, value, ct);
-            }
+            s = s.Trim().ToLowerInvariant();
+            if (s == "1" || s == "true" || s == "on" || s == "yes" || s == "evet") { value = true; return true; }
+            if (s == "0" || s == "false" || s == "off" || s == "no" || s == "hayır" || s == "hayir") { value = false; return true; }
 
-            return false;
+            return bool.TryParse(s, out value);
         }
 
         private bool ParseBool(string s)
