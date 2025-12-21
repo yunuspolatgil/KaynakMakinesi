@@ -53,5 +53,14 @@ namespace KaynakMakinesi.UI
                 // statusLabelConnection.Text = $"{e.State} - {e.Reason}";
             }));
         }
+
+        private void btnAyarlar_Click(object sender, EventArgs e)
+        {
+            using (var f = new SettingsForm(_settingsStore))
+            {
+                if (f.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
+                    _log.Info(nameof(MainForm), "Ayarlar kaydedildi.");
+            }
+        }
     }
 }

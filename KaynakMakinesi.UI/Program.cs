@@ -17,6 +17,7 @@ namespace KaynakMakinesi.UI
         [STAThread]
         static void Main()
         {
+          
             System.Windows.Forms.Application.ThreadException += (s, e) =>
             {
                 // burada logger henüz kurulmadıysa bile en azından messagebox/log dosyası yapılabilir
@@ -28,6 +29,7 @@ namespace KaynakMakinesi.UI
                 MessageBox.Show("Kritik hata: " + e.ExceptionObject, "Kritik", MessageBoxButtons.OK, MessageBoxIcon.Error);
             };
 
+            //SQLitePCL.Batteries.Init();
             System.Windows.Forms.Application.EnableVisualStyles();
             System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
 

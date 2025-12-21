@@ -11,6 +11,7 @@ namespace KaynakMakinesi.Infrastructure.Plc
     public sealed class ModbusPlcClient : IPlcClient
     {
         private readonly object _sync = new object();
+        private readonly System.Threading.SemaphoreSlim _gate = new System.Threading.SemaphoreSlim(1, 1);
         private TcpClient _tcp;
         private IModbusMaster _master;
 
@@ -22,26 +23,45 @@ namespace KaynakMakinesi.Infrastructure.Plc
             }
         }
 
-        public Task ConnectAsync(string ip, int port, int timeoutMs, CancellationToken ct)
+        public async Task<bool> TryConnectAsync(string ip, int port, int timeoutMs, CancellationToken ct)
         {
-            return Task.Run(() =>
+            await _gate.WaitAsync(ct).ConfigureAwait(false);
+            try
             {
                 ct.ThrowIfCancellationRequested();
 
+                lock (_sync) { Cleanup_NoThrow(); }
+
+                var tcp = new System.Net.Sockets.TcpClient
+                {
+                    ReceiveTimeout = timeoutMs,
+                    SendTimeout = timeoutMs
+                };
+
+                var connectTask = tcp.ConnectAsync(ip, port);
+                var finished = await Task.WhenAny(connectTask, Task.Delay(timeoutMs, ct)).ConfigureAwait(false);
+
+                if (finished != connectTask || !tcp.Connected)
+                {
+                    try { tcp.Close(); } catch { }
+                    return false;
+                }
+
+                var master = ModbusIpMaster.CreateIp(tcp);
+                master.Transport.Retries = 0;
+
                 lock (_sync)
                 {
-                    Cleanup_NoThrow();
-
-                    _tcp = new TcpClient();
-                    _tcp.ReceiveTimeout = timeoutMs;
-                    _tcp.SendTimeout = timeoutMs;
-                    _tcp.Connect(ip, port);
-
-                    
-                    _master = ModbusIpMaster.CreateIp(_tcp);
-                    _master.Transport.Retries = 0; // retry'yi biz yöneteceğiz
+                    _tcp = tcp;
+                    _master = master;
                 }
-            }, ct);
+
+                return true;
+            }
+            catch (OperationCanceledException) { return false; }
+            catch (System.Net.Sockets.SocketException) { return false; }
+            catch { lock (_sync) { Cleanup_NoThrow(); } return false; }
+            finally { _gate.Release(); }
         }
 
         public Task DisconnectAsync(CancellationToken ct)

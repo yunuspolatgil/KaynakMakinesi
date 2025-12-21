@@ -76,7 +76,17 @@ namespace KaynakMakinesi.Infrastructure.Plc
                         SetState(ConnectionState.Connecting, "Bağlanıyor...");
                         _log.Info(nameof(PlcConnectionSupervisor), $"PLC bağlanıyor: {plc.Ip}:{plc.Port}");
 
-                        await _plc.ConnectAsync(plc.Ip, plc.Port, plc.TimeoutMs, ct);
+                        var ok = await _plc.TryConnectAsync(plc.Ip, plc.Port, plc.TimeoutMs, ct);
+                        if (!ok)
+                        {
+                            SetState(ConnectionState.Disconnected, "Bağlanamadı");
+                            await Task.Delay(backoffMs, ct);
+                            backoffMs = Math.Min(backoffMs * 2, 10000);
+                            continue;
+                        }
+
+                        SetState(ConnectionState.Connected, "Bağlandı");
+                        backoffMs = 500;
                         SetState(ConnectionState.Connected, "Bağlandı");
                         _log.Info(nameof(PlcConnectionSupervisor), "PLC bağlantısı OK");
 

@@ -20,10 +20,9 @@ namespace KaynakMakinesi.Core.Plc
     public interface IPlcClient : IDisposable
     {
         bool IsConnected { get; }
-        Task ConnectAsync(string ip, int port, int timeoutMs, CancellationToken ct);
+        Task<bool> TryConnectAsync(string ip, int port, int timeoutMs, CancellationToken ct);
         Task DisconnectAsync(CancellationToken ct);
 
-        // Modbus örnekleri
         Task<ushort[]> ReadHoldingRegistersAsync(byte unitId, ushort startAddress, ushort numberOfPoints, CancellationToken ct);
         Task WriteSingleRegisterAsync(byte unitId, ushort address, ushort value, CancellationToken ct);
     }
