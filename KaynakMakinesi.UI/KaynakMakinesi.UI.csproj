@@ -43,6 +43,9 @@
     <Reference Include="DevExpress.XtraEditors.v22.2" />
     <Reference Include="DevExpress.Printing.v22.2.Core" />
     <Reference Include="DevExpress.Drawing.v22.2" />
+    <Reference Include="DevExpress.XtraGrid.v22.2, Version=22.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraLayout.v22.2, Version=22.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraPrinting.v22.2, Version=22.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
     <Reference Include="SQLitePCLRaw.batteries_v2, Version=2.1.11.2622, Culture=neutral, PublicKeyToken=8226ea5df37bcae9, processorArchitecture=MSIL">
       <HintPath>..\packages\SQLitePCLRaw.bundle_winsqlite3.2.1.11\lib\netstandard2.0\SQLitePCLRaw.batteries_v2.dll</HintPath>
     </Reference>
@@ -83,6 +86,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FrmAnaForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmAnaForm.Designer.cs">
+      <DependentUpon>FrmAnaForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FrmTagManager.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmTagManager.Designer.cs">
+      <DependentUpon>FrmTagManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="KaynakMakinesi\Infrastructure\Tags\TagEntity.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -97,6 +113,12 @@
     <Compile Include="SettingsForm.Designer.cs">
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="FrmAnaForm.resx">
+      <DependentUpon>FrmAnaForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FrmTagManager.resx">
+      <DependentUpon>FrmTagManager.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -164,6 +186,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\kazan-sıkıstırma.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\pro_plc.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\pro_plc.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\png.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

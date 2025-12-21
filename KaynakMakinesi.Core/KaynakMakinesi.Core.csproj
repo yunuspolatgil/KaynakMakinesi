@@ -44,6 +44,7 @@
     <Compile Include="Abstractions\ISettingsStore.cs" />
     <Compile Include="Jobs\JobModels.cs" />
     <Compile Include="Logging\LogModels.cs" />
+    <Compile Include="Model\TagRow.cs" />
     <Compile Include="Plc\Addressing\IAddressResolver.cs" />
     <Compile Include="Plc\Addressing\ResolveResult.cs" />
     <Compile Include="Plc\Codec\IModbusCodec.cs" />

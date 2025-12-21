@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using KaynakMakinesi.Core.Plc.Addressing;
 using KaynakMakinesi.Core.Plc.Profile;
 using KaynakMakinesi.Core.Tags;
@@ -10,10 +11,47 @@ namespace KaynakMakinesi.Application.Plc.Addressing
         private readonly IPlcProfile _profile;
         private readonly ITagRepository _tags;
 
+        // Tag cache: Name -> Tag
+        private volatile Dictionary<string, TagDef> _byName =
+            new Dictionary<string, TagDef>(StringComparer.OrdinalIgnoreCase);
+
         public AddressResolver(IPlcProfile profile, ITagRepository tags)
         {
-            _profile = profile;
-            _tags = tags;
+            _profile = profile ?? throw new ArgumentNullException(nameof(profile));
+            _tags = tags ?? throw new ArgumentNullException(nameof(tags));
+
+            ReloadTags(); // ilk yükleme
+        }
+
+        /// <summary>
+        /// DB'den tag listesini yeniden yükler (Tag Manager kaydetten sonra çağır).
+        /// </summary>
+        public void ReloadTags()
+        {
+            try
+            {
+                // ITagRepository içinde ListAll() olmalı
+                var list = _tags.ListAll();
+                var dict = new Dictionary<string, TagDef>(StringComparer.OrdinalIgnoreCase);
+
+                if (list != null)
+                {
+                    foreach (var t in list)
+                    {
+                        if (t == null) continue;
+                        var name = (t.Name ?? "").Trim();
+                        if (name.Length == 0) continue;
+                        dict[name] = t;
+                    }
+                }
+
+                _byName = dict;
+            }
+            catch
+            {
+                // Resolver patlamasın
+                _byName = new Dictionary<string, TagDef>(StringComparer.OrdinalIgnoreCase);
+            }
         }
 
         public ResolveResult Resolve(string input)
@@ -29,8 +67,10 @@ namespace KaynakMakinesi.Application.Plc.Addressing
             input = input.Trim();
 
             // 1) Tag adı mı?
-            if (_tags.TryGetByName(input, out var tag))
+            var dict = _byName;
+            if (dict.TryGetValue(input, out var tag))
             {
+                // TagDef içinde Address1Based var diye varsayıyorum (senin eski kod böyle kullanıyor)
                 if (_profile.TryResolveByModbusAddress(tag.Address1Based, out var addr, out var err))
                 {
                     addr.ReadOnly = addr.ReadOnly || tag.ReadOnly; // birleşik

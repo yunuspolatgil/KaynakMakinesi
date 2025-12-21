@@ -81,7 +81,7 @@ namespace KaynakMakinesi.Application.Plc.Service
             }
             catch (Exception ex)
             {
-                _log.Error(nameof(ModbusService), $"WriteText fail input={input}", ex);
+                _log.Error(nameof(ModbusService), $"WriteText başarısız input={input}", ex);
                 return false;
             }
         }
@@ -127,9 +127,25 @@ namespace KaynakMakinesi.Application.Plc.Service
                 {
                     bool val;
                     if (a.Area == ModbusArea.Coil)
-                        val = (await _plc.ReadCoilsAsync(unit, a.Start0, 1, ct))[0];
+                    {
+                        var arr = await _plc.ReadCoilsAsync(unit, a.Start0, 1, ct).ConfigureAwait(false);
+                        if (arr == null || arr.Length == 0)
+                        {
+                            _log?.Warn(nameof(ModbusService), $"Coil okuması boş döndü: {input}");
+                            return new ModbusReadResult { Success = false, Error = "PLC okuması başarısız", Address = a };
+                        }
+                        val = arr[0];
+                    }
                     else if (a.Area == ModbusArea.DiscreteInput)
-                        val = (await _plc.ReadDiscreteInputsAsync(unit, a.Start0, 1, ct))[0];
+                    {
+                        var arr = await _plc.ReadDiscreteInputsAsync(unit, a.Start0, 1, ct).ConfigureAwait(false);
+                        if (arr == null || arr.Length == 0)
+                        {
+                            _log?.Warn(nameof(ModbusService), $"Discrete input okuması boş döndü: {input}");
+                            return new ModbusReadResult { Success = false, Error = "PLC okuması başarısız", Address = a };
+                        }
+                        val = arr[0];
+                    }
                     else
                         return new ModbusReadResult { Success = false, Error = "Bool sadece Coil/DI alanında okunur." };
 
@@ -139,19 +155,35 @@ namespace KaynakMakinesi.Application.Plc.Service
                 {
                     ushort[] regs;
                     if (a.Area == ModbusArea.HoldingRegister)
-                        regs = await _plc.ReadHoldingRegistersAsync(unit, a.Start0, a.Length, ct);
+                        regs = await _plc.ReadHoldingRegistersAsync(unit, a.Start0, a.Length, ct).ConfigureAwait(false);
                     else if (a.Area == ModbusArea.InputRegister)
-                        regs = await _plc.ReadInputRegistersAsync(unit, a.Start0, a.Length, ct);
+                        regs = await _plc.ReadInputRegistersAsync(unit, a.Start0, a.Length, ct).ConfigureAwait(false);
                     else
                         return new ModbusReadResult { Success = false, Error = "Register okuma için alan uygun değil." };
 
-                    var value = _codec.Decode(a.Type, regs);
+                    if (regs == null || regs.Length < a.Length || regs.Length == 0)
+                    {
+                        _log?.Warn(nameof(ModbusService), $"Register okuması beklenenden kısa/dolu değil: {input} beklenen={a.Length} alındı={(regs==null?0:regs.Length)}");
+                        return new ModbusReadResult { Success = false, Error = "PLC okuması başarısız", Address = a };
+                    }
+
+                    object value;
+                    try
+                    {
+                        value = _codec.Decode(a.Type, regs);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log?.Error(nameof(ModbusService), $"Decode hatası: {input}", ex);
+                        return new ModbusReadResult { Success = false, Error = "Decode hatası: " + ex.Message, Address = a };
+                    }
+
                     return new ModbusReadResult { Success = true, Value = value, Address = a };
                 }
             }
             catch (Exception ex)
             {
-                _log.Error(nameof(ModbusService), $"ReadAuto fail input={input}", ex);
+                _log.Error(nameof(ModbusService), $"ReadAuto başarısız input={input}", ex);
                 return new ModbusReadResult { Success = false, Error = ex.Message, Address = a };
             }
         }
@@ -172,7 +204,7 @@ namespace KaynakMakinesi.Application.Plc.Service
                 if (a.Type == ValueType.Bool)
                 {
                     if (a.Area != ModbusArea.Coil) return false;
-                    await _plc.WriteSingleCoilAsync(unit, a.Start0, Convert.ToBoolean(value), ct);
+                    await _plc.WriteSingleCoilAsync(unit, a.Start0, Convert.ToBoolean(value), ct).ConfigureAwait(false);
                     return true;
                 }
                 else
@@ -180,18 +212,18 @@ namespace KaynakMakinesi.Application.Plc.Service
                     var regs = _codec.Encode(a.Type, value);
                     if (regs.Length == 1)
                     {
-                        await _plc.WriteSingleRegisterAsync(unit, a.Start0, regs[0], ct);
+                        await _plc.WriteSingleRegisterAsync(unit, a.Start0, regs[0], ct).ConfigureAwait(false);
                         return true;
                     }
 
-                    await _plc.WriteMultipleRegistersAsync(unit, a.Start0, regs, ct);
+                    await _plc.WriteMultipleRegistersAsync(unit, a.Start0, regs, ct).ConfigureAwait(false);
                     return true;
                  
                 }
             }
             catch (Exception ex)
             {
-                _log.Error(nameof(ModbusService), $"WriteAuto fail input={input}", ex);
+                _log.Error(nameof(ModbusService), $"WriteAuto başarısız input={input}", ex);
                 return false;
             }
         }

@@ -32,13 +32,48 @@ namespace KaynakMakinesi.Application.Jobs
             _repo.EnsureSchema();
             _repo.MarkStaleInProgressAsPending(TimeSpan.FromMinutes(5)); // app kapandıysa kaldığı yerden devam
 
+            if (_cts != null) return;
             _cts = new CancellationTokenSource();
-            _loop = Task.Run(() => RunAsync(_cts.Token));
+
+            // Run the loop in a resilient background task so unexpected exceptions don't terminate the process
+            var task = Task.Run(async () =>
+            {
+                var ct = _cts.Token;
+                while (!ct.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await RunAsync(ct).ConfigureAwait(false);
+                        // normally RunAsync only returns on cancellation
+                        break;
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        try { _log.Error(nameof(JobRunner), "JobRunner döngüsünde hata; yeniden başlatılacak", ex); } catch { }
+                        try { await Task.Delay(1000, CancellationToken.None).ConfigureAwait(false); } catch { }
+                    }
+                }
+            });
+
+            _loop = task.ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                {
+                    try { _log.Error(nameof(JobRunner), "JobRunner arka plan görevi hata verdi", t.Exception); } catch { }
+                }
+            }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
         }
 
         public void Stop()
         {
-            _cts?.Cancel();
+            try { _cts?.Cancel(); } catch { }
+            try { _loop?.Wait(500); } catch { }
+            _cts = null;
+            _loop = null;
         }
 
         private async Task RunAsync(CancellationToken ct)
@@ -48,25 +83,30 @@ namespace KaynakMakinesi.Application.Jobs
                 // bağlantı yoksa job çalıştırma (kuyruk bekler, kopunca kaybolmaz)
                 if (_conn.State != ConnectionState.Connected)
                 {
-                    await Task.Delay(250, ct);
+                    try { await Task.Delay(250, ct).ConfigureAwait(false); } catch { }
                     continue;
                 }
 
                 var job = _repo.DequeueNextPending();
                 if (job == null)
                 {
-                    await Task.Delay(200, ct);
+                    try { await Task.Delay(200, ct).ConfigureAwait(false); } catch { }
                     continue;
                 }
 
                 try
                 {
-                    await ExecuteJobAsync(job, ct);
+                    await ExecuteJobAsync(job, ct).ConfigureAwait(false);
                     job.State = JobState.Done;
                     job.LastError = null;
                     _repo.Update(job);
 
-                    _log.Info(nameof(JobRunner), $"Job DONE Id={job.Id} Type={job.Type}");
+                    _log.Info(nameof(JobRunner), $"Job TAMAMLANDI Id={job.Id} Tip={job.Type}");
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    // shutdown requested
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -75,8 +115,8 @@ namespace KaynakMakinesi.Application.Jobs
                     job.State = (job.RetryCount >= 5) ? JobState.Failed : JobState.Pending; // retry policy
                     _repo.Update(job);
 
-                    _log.Error(nameof(JobRunner), $"Job FAIL Id={job.Id} Type={job.Type} Retry={job.RetryCount}", ex);
-                    await Task.Delay(300, ct);
+                    _log.Error(nameof(JobRunner), $"Job HATA Id={job.Id} Tip={job.Type} Deneme={job.RetryCount}", ex);
+                    try { await Task.Delay(300, ct).ConfigureAwait(false); } catch { }
                 }
             }
         }
@@ -88,11 +128,11 @@ namespace KaynakMakinesi.Application.Jobs
             {
                 var p = JsonConvert.DeserializeObject<WriteRegisterPayload>(job.PayloadJson);
                 // Not: unitId ayarlardan da alınabilir; burada payload’a koyduk
-                await _plc.WriteSingleRegisterAsync(p.UnitId, p.Address, p.Value, ct);
+                await _plc.WriteSingleRegisterAsync(p.UnitId, p.Address, p.Value, ct).ConfigureAwait(false);
                 return;
             }
 
-            throw new NotSupportedException("Unknown job type: " + job.Type);
+            throw new NotSupportedException("Bilinmeyen job tipi: " + job.Type);
         }
 
         private sealed class WriteRegisterPayload

@@ -83,7 +83,7 @@ namespace KaynakMakinesi.UI
             _logger = logger;
 
             // PLC + Supervisor
-            var plcClient = new ModbusPlcClient();
+            var plcClient = new ModbusPlcClient(logger);
             var supervisor = new PlcConnectionSupervisor(settingsStore, plcClient, logger);
 
             // Jobs
@@ -114,7 +114,7 @@ namespace KaynakMakinesi.UI
                 try { plcClient.Dispose(); } catch { }
             };
 
-            System.Windows.Forms.Application.Run(new MainForm(settingsStore, inMemSink, supervisor, logger, modbusService));
+            System.Windows.Forms.Application.Run(new FrmAnaForm(settingsStore, inMemSink, supervisor, logger, modbusService, tagRepo));
         }
     }
 }

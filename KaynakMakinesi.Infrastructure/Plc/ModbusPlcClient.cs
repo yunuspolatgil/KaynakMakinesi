@@ -1,4 +1,5 @@
-﻿using KaynakMakinesi.Core.Plc;
+﻿using KaynakMakinesi.Core.Logging;
+using KaynakMakinesi.Core.Plc;
 using Modbus.Device;
 using System;
 using System.IO;
@@ -13,8 +14,14 @@ namespace KaynakMakinesi.Infrastructure.Plc
         // NModbus master thread-safe değil => tüm IO seri
         private readonly SemaphoreSlim _io = new SemaphoreSlim(1, 1);
 
+        private readonly IAppLogger _log;
         private TcpClient _tcp;
         private IModbusMaster _master;
+
+        public ModbusPlcClient(IAppLogger log = null)
+        {
+            _log = log;
+        }
 
         public bool IsConnected => _master != null;
 
@@ -52,8 +59,8 @@ namespace KaynakMakinesi.Infrastructure.Plc
                 return true;
             }
             catch (OperationCanceledException) { return false; }
-            catch (SocketException) { Cleanup_NoThrow(); return false; }
-            catch { Cleanup_NoThrow(); return false; }
+            catch (SocketException ex) { try { _log?.Error(nameof(ModbusPlcClient), "Bağlantıda soket hatası", ex); } catch { } Cleanup_NoThrow(); return false; }
+            catch (Exception ex) { try { _log?.Error(nameof(ModbusPlcClient), "Bağlantı hatası", ex); } catch { } Cleanup_NoThrow(); return false; }
             finally
             {
                 _io.Release();
@@ -94,24 +101,63 @@ namespace KaynakMakinesi.Infrastructure.Plc
         public Task WriteMultipleRegistersAsync(byte unitId, ushort start0, ushort[] values, CancellationToken ct)
             => ExecuteWriteAsync(m => m.WriteMultipleRegisters(unitId, start0, values), ct);
 
+        // NOTE: to guarantee the application never crashes because of PLC IO,
+        // we swallow all non-cancellation exceptions here and return safe defaults.
         private async Task<T> ExecuteReadAsync<T>(Func<IModbusMaster, T> read, CancellationToken ct)
         {
             await _io.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 ct.ThrowIfCancellationRequested();
-
                 var master = _master;
                 if (master == null)
-                    throw new InvalidOperationException("PLC bağlantısı yok.");
+                {
+                    // return safe empty arrays for common types to avoid nulls
+                    if (typeof(T) == typeof(bool[])) return (T)(object)Array.Empty<bool>();
+                    if (typeof(T) == typeof(ushort[])) return (T)(object)Array.Empty<ushort>();
+                    return default(T); // no connection => safe default
+                }
 
-                // sync IO => UI bloklamasın
-                return await Task.Run(() => read(master), ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (IsCommException(ex))
-            {
-                Cleanup_NoThrow();
-                throw new InvalidOperationException("PLC bağlantısı koptu.", ex);
+                try
+                {
+                    // sync IO => UI bloklamasın
+                    return await Task.Run(() =>
+                    {
+                        try
+                        {
+                            return read(master);
+                        }
+                        catch (Exception ex)
+                        {
+                            try { _log?.Error(nameof(ModbusPlcClient), "Okuma hatası, bağlantı temizleniyor.", ex); } catch { }
+
+                            // Eğer iletişimle ilgili bir hata ise bağlantıyı temizle
+                            if (IsCommException(ex))
+                                Cleanup_NoThrow();
+
+                            // swallow and return safe default to avoid throwing
+                            if (typeof(T) == typeof(bool[])) return (T)(object)Array.Empty<bool>();
+                            if (typeof(T) == typeof(ushort[])) return (T)(object)Array.Empty<ushort>();
+                            return default(T);
+                        }
+                    }, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // propagate cancellation
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    try { _log?.Error(nameof(ModbusPlcClient), "Sarmalayıcı hatası okundu, bağlantı temizleniyor", ex); } catch { }
+
+                    // any unexpected error: ensure connection is cleaned and return default
+                    try { Cleanup_NoThrow(); } catch { }
+
+                    if (typeof(T) == typeof(bool[])) return (T)(object)Array.Empty<bool>();
+                    if (typeof(T) == typeof(ushort[])) return (T)(object)Array.Empty<ushort>();
+                    return default(T);
+                }
             }
             finally
             {
@@ -128,14 +174,37 @@ namespace KaynakMakinesi.Infrastructure.Plc
 
                 var master = _master;
                 if (master == null)
-                    throw new InvalidOperationException("PLC bağlantısı yok.");
+                    return; // no connection => nothing to do
 
-                await Task.Run(() => write(master), ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (IsCommException(ex))
-            {
-                Cleanup_NoThrow();
-                throw new InvalidOperationException("PLC bağlantısı koptu.", ex);
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            write(master);
+                        }
+                        catch (Exception ex)
+                        {
+                            try { _log?.Error(nameof(ModbusPlcClient), "Yazma hatası, bağlantı temizleniyor.", ex); } catch { }
+
+                            if (IsCommException(ex))
+                                Cleanup_NoThrow();
+
+                            // swallow
+                        }
+                    }, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    try { _log?.Error(nameof(ModbusPlcClient), "Yazma sarmalayıcı hatası, bağlantı temizleniyor.", ex); } catch { }
+                    try { Cleanup_NoThrow(); } catch { }
+                    // swallow all non-cancellation exceptions to prevent crashes
+                }
             }
             finally
             {
@@ -148,7 +217,8 @@ namespace KaynakMakinesi.Infrastructure.Plc
             // Bağlantı kopmalarında görülen tipik exceptionlar
             return ex is SocketException
                 || ex is IOException
-                || ex is ObjectDisposedException;
+                || ex is ObjectDisposedException
+                || ex is TimeoutException;
         }
 
         private void Cleanup_NoThrow()
