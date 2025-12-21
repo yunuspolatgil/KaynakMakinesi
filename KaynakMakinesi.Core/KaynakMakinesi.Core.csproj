@@ -44,9 +44,18 @@
     <Compile Include="Abstractions\ISettingsStore.cs" />
     <Compile Include="Jobs\JobModels.cs" />
     <Compile Include="Logging\LogModels.cs" />
+    <Compile Include="Plc\Addressing\IAddressResolver.cs" />
+    <Compile Include="Plc\Addressing\ResolveResult.cs" />
+    <Compile Include="Plc\Codec\IModbusCodec.cs" />
+    <Compile Include="Plc\ModbusTypes.cs" />
     <Compile Include="Plc\PlcAbstractions.cs" />
+    <Compile Include="Plc\Profile\IPlcProfile.cs" />
+    <Compile Include="Plc\Profile\ProfileRule.cs" />
+    <Compile Include="Plc\Service\IModbusService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings\AppSettings.cs" />
+    <Compile Include="Tags\ITagRepository.cs" />
+    <Compile Include="Tags\TagDefinition.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

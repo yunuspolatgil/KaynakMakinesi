@@ -83,8 +83,10 @@
     <Compile Include="Logging\SqliteLogSink.cs" />
     <Compile Include="Plc\ModbusPlcClient.cs" />
     <Compile Include="Plc\PlcConnectionSupervisor.cs" />
+    <Compile Include="Plc\Profile\Gmt496Profile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings\JsonFileSettingsStore.cs" />
+    <Compile Include="Tags\SqliteTagRepository.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

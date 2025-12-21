@@ -20,11 +20,22 @@ namespace KaynakMakinesi.Core.Plc
     public interface IPlcClient : IDisposable
     {
         bool IsConnected { get; }
+
+        // throw etmeyen bağlantı (senin crash olmama kuralın)
         Task<bool> TryConnectAsync(string ip, int port, int timeoutMs, CancellationToken ct);
         Task DisconnectAsync(CancellationToken ct);
 
-        Task<ushort[]> ReadHoldingRegistersAsync(byte unitId, ushort startAddress, ushort numberOfPoints, CancellationToken ct);
-        Task WriteSingleRegisterAsync(byte unitId, ushort address, ushort value, CancellationToken ct);
+        // Bit alanları
+        Task<bool[]> ReadCoilsAsync(byte unitId, ushort start0, ushort count, CancellationToken ct);
+        Task<bool[]> ReadDiscreteInputsAsync(byte unitId, ushort start0, ushort count, CancellationToken ct);
+        Task WriteSingleCoilAsync(byte unitId, ushort address0, bool value, CancellationToken ct);
+
+        // Register alanları
+        Task<ushort[]> ReadHoldingRegistersAsync(byte unitId, ushort start0, ushort count, CancellationToken ct);
+        Task<ushort[]> ReadInputRegistersAsync(byte unitId, ushort start0, ushort count, CancellationToken ct);
+        Task WriteSingleRegisterAsync(byte unitId, ushort address0, ushort value, CancellationToken ct);
+        Task WriteMultipleRegistersAsync(byte unitId, ushort start0, ushort[] values, CancellationToken ct);
+
     }
 
     public interface IConnectionSupervisor

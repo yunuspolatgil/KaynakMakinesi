@@ -39,6 +39,7 @@
     <Reference Include="DevExpress.Data.v22.2" />
     <Reference Include="DevExpress.Utils.v22.2" />
     <Reference Include="DevExpress.Sparkline.v22.2.Core" />
+    <Reference Include="DevExpress.XtraBars.v22.2, Version=22.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
     <Reference Include="DevExpress.XtraEditors.v22.2" />
     <Reference Include="DevExpress.Printing.v22.2.Core" />
     <Reference Include="DevExpress.Drawing.v22.2" />
@@ -126,6 +127,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\KaynakMakinesi.Application\KaynakMakinesi.Application.csproj">
+      <Project>{8DB57FCF-77C9-4349-A7FD-6A633CADE6D5}</Project>
+      <Name>KaynakMakinesi.Application</Name>
+    </ProjectReference>
     <ProjectReference Include="..\KaynakMakinesi.Core\KaynakMakinesi.Core.csproj">
       <Project>{A0D40CB4-F071-46CF-B115-38F56372D0B7}</Project>
       <Name>KaynakMakinesi.Core</Name>

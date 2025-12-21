@@ -41,7 +41,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Plc\Addressing\AddressResolver.cs" />
+    <Compile Include="Plc\Codec\ModbusCodec.cs" />
+    <Compile Include="Plc\Service\ModbusService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KaynakMakinesi.Core\KaynakMakinesi.Core.csproj">
+      <Project>{A0D40CB4-F071-46CF-B115-38F56372D0B7}</Project>
+      <Name>KaynakMakinesi.Core</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
