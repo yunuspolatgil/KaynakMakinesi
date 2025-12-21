@@ -73,6 +73,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <None Include="App.config" />
+    <None Include="appsettings.json" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -82,6 +83,16 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KaynakMakinesi.Core\KaynakMakinesi.Core.csproj">
+      <Project>{A0D40CB4-F071-46CF-B115-38F56372D0B7}</Project>
+      <Name>KaynakMakinesi.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\KaynakMakinesi.Infrastructure\KaynakMakinesi.Infrastructure.csproj">
+      <Project>{7d8273fb-7b6e-4785-b2a4-e0f616ae4d9d}</Project>
+      <Name>KaynakMakinesi.Infrastructure</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

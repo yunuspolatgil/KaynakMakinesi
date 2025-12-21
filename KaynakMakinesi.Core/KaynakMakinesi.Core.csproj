@@ -41,7 +41,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Abstractions\ISettingsStore.cs" />
+    <Compile Include="Jobs\JobModels.cs" />
+    <Compile Include="Logging\LogModels.cs" />
+    <Compile Include="Plc\PlcAbstractions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Settings\AppSettings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
