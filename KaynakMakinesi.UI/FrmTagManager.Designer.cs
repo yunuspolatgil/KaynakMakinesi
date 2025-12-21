@@ -328,8 +328,6 @@
             this.gvTags.Name = "gvTags";
             this.gvTags.OptionsNavigation.EnterMoveNextColumn = true;
             this.gvTags.OptionsSelection.MultiSelect = true;
-            this.gvTags.OptionsView.ColumnAutoWidth = false;
-            this.gvTags.OptionsView.RowAutoHeight = true;
             this.gvTags.OptionsView.ShowGroupPanel = false;
             // 
             // colName
@@ -339,7 +337,7 @@
             this.colName.Name = "colName";
             this.colName.Visible = true;
             this.colName.VisibleIndex = 0;
-            this.colName.Width = 171;
+            this.colName.Width = 281;
             // 
             // colAddress
             // 
@@ -349,7 +347,7 @@
             this.colAddress.Name = "colAddress";
             this.colAddress.Visible = true;
             this.colAddress.VisibleIndex = 1;
-            this.colAddress.Width = 130;
+            this.colAddress.Width = 133;
             // 
             // repoAddress
             // 
@@ -364,6 +362,7 @@
             this.colType.Name = "colType";
             this.colType.Visible = true;
             this.colType.VisibleIndex = 2;
+            this.colType.Width = 104;
             // 
             // repoType
             // 
@@ -416,7 +415,7 @@
             this.colDescription.Name = "colDescription";
             this.colDescription.Visible = true;
             this.colDescription.VisibleIndex = 4;
-            this.colDescription.Width = 108;
+            this.colDescription.Width = 199;
             // 
             // colPollMs
             // 

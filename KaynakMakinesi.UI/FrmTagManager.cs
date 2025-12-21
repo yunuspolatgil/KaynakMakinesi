@@ -6,9 +6,13 @@ using KaynakMakinesi.Core.Model;
 using KaynakMakinesi.Core.Plc.Service;
 using KaynakMakinesi.Infrastructure.Tags;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace KaynakMakinesi.UI
@@ -17,11 +21,34 @@ namespace KaynakMakinesi.UI
     {
         private BindingList<TagRow> _rows = new BindingList<TagRow>();
         private readonly SqliteTagRepository _tagRepo;
-        public FrmTagManager(SqliteTagRepository tagRepo)
+        private readonly IModbusService _modbusService;
+        private readonly IAppLogger _log;
+
+        // snapshot for Undo
+        private List<TagRow> _snapshot = new List<TagRow>();
+
+        // monitor
+        private CancellationTokenSource _monitorCts;
+        private Task _monitorTask;
+
+        public FrmTagManager(SqliteTagRepository tagRepo, IModbusService modbusService = null, IAppLogger log = null)
         {
             InitializeComponent();
             _tagRepo = tagRepo;
-            
+            _modbusService = modbusService;
+            _log = log;
+
+            // wire buttons
+            btnImportExcel.ItemClick += BtnImportExcel_ItemClick;
+            btnExportExcel.ItemClick += BtnExportExcel_ItemClick;
+            btnReload.ItemClick += BtnReload_ItemClick;
+            btnNewTag.ItemClick += BtnNewTag_ItemClick;
+            btnReadSelected.ItemClick += BtnReadSelected_ItemClick;
+            btnWriteSelected.ItemClick += BtnWriteSelected_ItemClick;
+            btnStartMonitor.ItemClick += BtnStartMonitor_ItemClick;
+            btnStopMonitor.ItemClick += BtnStopMonitor_ItemClick;
+            btnUndo.ItemClick += BtnUndo_ItemClick;
+
             SetupGrid();
             LoadFromDb(); // şimdilik DB yok, önce grid çalışsın
         }
@@ -45,6 +72,9 @@ namespace KaynakMakinesi.UI
                     ReadOnly = t.ReadOnly
                 });
             }
+
+            // snapshot for undo
+            SaveSnapshot();
         }
 
         private void SaveToDb()
@@ -77,6 +107,9 @@ namespace KaynakMakinesi.UI
             }).ToList();
 
             _tagRepo.UpsertMany(defs);
+
+            // update snapshot after save
+            SaveSnapshot();
         }
 
         private void SetupGrid()
@@ -116,14 +149,342 @@ namespace KaynakMakinesi.UI
             gvTags.Columns[nameof(TagRow.UpdatedAt)].OptionsColumn.AllowEdit = false;
         }
 
+        private void SaveSnapshot()
+        {
+            _snapshot = _rows.Select(r => new TagRow
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Address = r.Address,
+                Type = r.Type,
+                Group = r.Group,
+                Description = r.Description,
+                PollMs = r.PollMs,
+                ReadOnly = r.ReadOnly,
+                LastValue = r.LastValue,
+                Status = r.Status,
+                UpdatedAt = r.UpdatedAt
+            }).ToList();
+        }
+
+        private void RestoreSnapshot()
+        {
+            _rows.Clear();
+            foreach (var r in _snapshot)
+                _rows.Add(r);
+        }
+
+        // --- Ribbon handlers ---
+        private void BtnImportExcel_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                using (var dlg = new OpenFileDialog())
+                {
+                    dlg.Filter = "CSV dosyası (*.csv)|*.csv|Tüm dosyalar (*.*)|*.*";
+                    if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+                    var lines = File.ReadAllLines(dlg.FileName);
+                    if (lines.Length < 1) return;
+
+                    var header = lines[0].Split(new[] { ',', ';', '\t' });
+                    // expect columns like Name, Address, Type, Group, Description, PollMs, ReadOnly
+                    var idxName = Array.FindIndex(header, h => h.Trim().Equals("Name", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Operanlar", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Operanlar", StringComparison.OrdinalIgnoreCase));
+                    var idxAddress = Array.FindIndex(header, h => h.Trim().Equals("Address", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Modbus adresi", StringComparison.OrdinalIgnoreCase));
+                    var idxType = Array.FindIndex(header, h => h.Trim().Equals("Type", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Veri tipi", StringComparison.OrdinalIgnoreCase));
+                    var idxGroup = Array.FindIndex(header, h => h.Trim().Equals("Group", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Sistem adı", StringComparison.OrdinalIgnoreCase));
+                    var idxDesc = Array.FindIndex(header, h => h.Trim().Equals("Description", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Açıklama", StringComparison.OrdinalIgnoreCase));
+                    var idxPoll = Array.FindIndex(header, h => h.Trim().Equals("PollMs", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Poll (ms)", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Açış değeri", StringComparison.OrdinalIgnoreCase));
+                    var idxRo = Array.FindIndex(header, h => h.Trim().Equals("ReadOnly", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Kalcı hafıza", StringComparison.OrdinalIgnoreCase));
+
+                    var imported = new List<TagRow>();
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        var parts = lines[i].Split(new[] { ',', ';', '\t' });
+                        if (parts.Length == 0) continue;
+
+                        var name = idxName >= 0 && idxName < parts.Length ? parts[idxName].Trim() : null;
+                        var addr = idxAddress >= 0 && idxAddress < parts.Length ? parts[idxAddress].Trim() : null;
+                        var type = idxType >= 0 && idxType < parts.Length ? parts[idxType].Trim() : "UShort";
+                        var group = idxGroup >= 0 && idxGroup < parts.Length ? parts[idxGroup].Trim() : null;
+                        var desc = idxDesc >= 0 && idxDesc < parts.Length ? parts[idxDesc].Trim() : null;
+                        int poll = 250;
+                        if (idxPoll >= 0 && idxPoll < parts.Length) int.TryParse(parts[idxPoll], out poll);
+                        bool ro = false;
+                        if (idxRo >= 0 && idxRo < parts.Length) bool.TryParse(parts[idxRo], out ro);
+
+                        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(addr)) continue;
+
+                        imported.Add(new TagRow
+                        {
+                            Name = name ?? addr,
+                            Address = addr ?? "",
+                            Type = string.IsNullOrWhiteSpace(type) ? "UShort" : type,
+                            Group = group,
+                            Description = desc,
+                            PollMs = poll <= 0 ? 250 : poll,
+                            ReadOnly = ro
+                        });
+                    }
+
+                    if (imported.Count == 0)
+                    {
+                        XtraMessageBox.Show("İçe aktarılan veri bulunamadı.", "Bilgi");
+                        return;
+                    }
+
+                    _rows.Clear();
+                    foreach (var r in imported) _rows.Add(r);
+
+                    SaveSnapshot();
+
+                    XtraMessageBox.Show("İçe aktarıldı. Değişiklikleri kalıcı hale getirmek için 'Kaydet' butonuna basın.", "Tamam");
+                }
+            }
+            catch (Exception ex)
+            {
+                try { _log?.Error(nameof(FrmTagManager), "Import hatası", ex); } catch { }
+                XtraMessageBox.Show("İçe aktarma sırasında hata: " + ex.Message, "Hata");
+            }
+        }
+
+        private void BtnExportExcel_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                using (var dlg = new SaveFileDialog())
+                {
+                    dlg.Filter = "CSV dosyası (*.csv)|*.csv|Tüm dosyalar (*.*)|*.*";
+                    dlg.FileName = "tags_export.csv";
+                    if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+                    using (var sw = new StreamWriter(dlg.FileName, false))
+                    {
+                        sw.WriteLine("Name,Address,Type,Group,Description,PollMs,ReadOnly");
+                        foreach (var r in _rows)
+                        {
+                            sw.WriteLine($"\"{Escape(r.Name)}\",\"{Escape(r.Address)}\",\"{Escape(r.Type)}\",\"{Escape(r.Group)}\",\"{Escape(r.Description)}\",{r.PollMs},{(r.ReadOnly?1:0)}");
+                        }
+                    }
+
+                    XtraMessageBox.Show("Dışa aktarma tamamlandı.", "Tamam");
+                }
+            }
+            catch (Exception ex)
+            {
+                try { _log?.Error(nameof(FrmTagManager), "Export hatası", ex); } catch { }
+                XtraMessageBox.Show("Dışa aktarma sırasında hata: " + ex.Message, "Hata");
+            }
+        }
+
+        private static string Escape(string s)
+        {
+            if (s == null) return string.Empty;
+            return s.Replace("\"", "\"\"");
+        }
+
+        private void BtnReload_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                LoadFromDb();
+                XtraMessageBox.Show("Yenilendi.", "Tamam");
+            }
+            catch (Exception ex)
+            {
+                XtraMessageBox.Show("Yenileme hatası: " + ex.Message, "Hata");
+            }
+        }
+
+        private void BtnNewTag_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            var t = new TagRow { Name = "YeniTag", Address = "", Type = "UShort", PollMs = 250, ReadOnly = false };
+            _rows.Insert(0, t);
+            gvTags.FocusedRowHandle = 0;
+            gvTags.ShowEditor();
+        }
+
+        private async void BtnReadSelected_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (_modbusService == null)
+            {
+                XtraMessageBox.Show("Modbus servisi bağlı değil.", "Uyarı");
+                return;
+            }
+
+            var sels = gvTags.GetSelectedRows();
+            foreach (var r in sels)
+            {
+                var row = gvTags.GetRow(r) as TagRow;
+                if (row == null) continue;
+
+                try
+                {
+                    var res = await _modbusService.ReadAutoAsync(row.Address, CancellationToken.None).ConfigureAwait(false);
+                    if (res.Success)
+                    {
+                        BeginInvoke((Action)(() =>
+                        {
+                            row.LastValue = res.Value?.ToString();
+                            row.Status = "OK";
+                            row.UpdatedAt = DateTime.Now;
+                            gvTags.RefreshRow(gvTags.GetRowHandle(r));
+                        }));
+                    }
+                    else
+                    {
+                        BeginInvoke((Action)(() =>
+                        {
+                            row.Status = "Hata: " + res.Error;
+                            row.UpdatedAt = DateTime.Now;
+                            gvTags.RefreshRow(gvTags.GetRowHandle(r));
+                        }));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    try { _log?.Error(nameof(FrmTagManager), "ReadSelected hata", ex); } catch { }
+                    BeginInvoke((Action)(() =>
+                    {
+                        row.Status = "Hata";
+                        row.UpdatedAt = DateTime.Now;
+                        gvTags.RefreshRow(gvTags.GetRowHandle(r));
+                    }));
+                }
+            }
+        }
+
+        private async void BtnWriteSelected_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            XtraMessageBox.Show("Yazma özelliği bu aşamada desteklenmiyor.", "Bilgi");
+            await Task.CompletedTask;
+        }
+
+        private void BtnStartMonitor_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (_modbusService == null)
+            {
+                XtraMessageBox.Show("Modbus servisi bağlı değil.", "Uyarı");
+                return;
+            }
+
+            if (_monitorCts != null) return; // zaten çalışıyor
+
+            _monitorCts = new CancellationTokenSource();
+            var ct = _monitorCts.Token;
+
+            _monitorTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!ct.IsCancellationRequested)
+                    {
+                        var rows = _rows.ToArray();
+                        foreach (var row in rows)
+                        {
+                            if (ct.IsCancellationRequested) break;
+                            try
+                            {
+                                var res = await _modbusService.ReadAutoAsync(row.Address, ct).ConfigureAwait(false);
+                                if (res.Success)
+                                {
+                                    BeginInvoke((Action)(() =>
+                                    {
+                                        row.LastValue = res.Value?.ToString();
+                                        row.Status = "OK";
+                                        row.UpdatedAt = DateTime.Now;
+                                        gvTags.RefreshData();
+                                    }));
+                                }
+                                else
+                                {
+                                    BeginInvoke((Action)(() =>
+                                    {
+                                        row.Status = "Hata";
+                                        row.UpdatedAt = DateTime.Now;
+                                        gvTags.RefreshData();
+                                    }));
+                                }
+                            }
+                            catch (OperationCanceledException) { break; }
+                            catch (Exception ex)
+                            {
+                                try { _log?.Error(nameof(FrmTagManager), "Monitor okuma hatası", ex); } catch { }
+                                BeginInvoke((Action)(() =>
+                                {
+                                    row.Status = "Hata";
+                                    row.UpdatedAt = DateTime.Now;
+                                    gvTags.RefreshData();
+                                }));
+                            }
+
+                            // wait row-specific poll or small delay
+                            await Task.Delay(Math.Max(100, row.PollMs), ct).ConfigureAwait(false);
+                        }
+
+                        // kısa aralık
+                        await Task.Delay(100, ct).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    try { _log?.Error(nameof(FrmTagManager), "Monitor döngüsü hata verdi", ex); } catch { }
+                }
+            }, ct).ContinueWith(t =>
+            {
+                if (t.IsFaulted) try { _log?.Error(nameof(FrmTagManager), "Monitor background task faulted", t.Exception); } catch { }
+            }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+
+            XtraMessageBox.Show("İzleme başlatıldı.", "Bilgi");
+        }
+
+        private void BtnStopMonitor_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                _monitorCts?.Cancel();
+                try { _monitorTask?.Wait(500); } catch { }
+                _monitorCts = null;
+                _monitorTask = null;
+                XtraMessageBox.Show("İzleme durduruldu.", "Bilgi");
+            }
+            catch (Exception ex)
+            {
+                try { _log?.Error(nameof(FrmTagManager), "Monitor stop hatası", ex); } catch { }
+                XtraMessageBox.Show("İzleme durdurulurken hata: " + ex.Message, "Hata");
+            }
+        }
+
+        private void BtnUndo_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            RestoreSnapshot();
+            XtraMessageBox.Show("Geri alındı.", "Bilgi");
+        }
+
         private void btnKaydet_Click(object sender, EventArgs e)
         {
-            
+            try
+            {
+                SaveToDb();
+                XtraMessageBox.Show("Kaydedildi.", "Tamam");
+            }
+            catch (Exception ex)
+            {
+                XtraMessageBox.Show("Kaydetme hatası: " + ex.Message, "Hata");
+            }
         }
 
         private void btnSil_Click(object sender, EventArgs e)
         {
-            
+            var row = gvTags.GetFocusedRow() as TagRow;
+            if (row == null) return;
+
+            if (XtraMessageBox.Show($"{row.Name} silinsin mi?", "Onay", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                return;
+
+            _tagRepo.DeleteByName(row.Name);
+            _rows.Remove(row);
         }
 
         private void btnSaveChanges_ItemClick(object sender, ItemClickEventArgs e)
@@ -131,7 +492,7 @@ namespace KaynakMakinesi.UI
             try
             {
                 SaveToDb();
-                XtraMessageBox.Show("Kaydedildi.", "OK");
+                XtraMessageBox.Show("Kaydedildi.", "Tamam");
                 LoadFromDb(); // id’ler/normalize için yeniden yüklemek iyi
             }
             catch (Exception ex)

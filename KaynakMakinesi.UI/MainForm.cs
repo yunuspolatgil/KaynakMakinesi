@@ -14,6 +14,6 @@ namespace KaynakMakinesi.UI
             //lblConnState.Text = r.Success ? r.Value?.ToString() : r.Error;
         }
 
- 
+
     }
 }

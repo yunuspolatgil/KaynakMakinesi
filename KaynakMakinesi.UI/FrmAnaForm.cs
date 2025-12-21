@@ -69,7 +69,7 @@ namespace KaynakMakinesi.UI
             lblConnReason.Caption = reason ?? "-";
 
             if (state == ConnectionState.Connected)
-                lblLastOk.Caption = "Son İşlem: " + DateTime.Now.ToString("HH:mm:ss");
+                lblLastOk.Caption = DateTime.Now.ToString("HH:mm:ss");
 
             // İkonu state’e göre değiştir (istersen renk de verirsin)
             // svgConn.SvgImage = ... (projene bir-iki svg ekle, burada seç)
@@ -113,10 +113,10 @@ namespace KaynakMakinesi.UI
         private void btnTagYonetim_ItemClick(object sender, ItemClickEventArgs e)
         {
 
-            using (var f = new FrmTagManager(_tagRepo /*, istersen modbusService de ver */))
-            {
-                f.ShowDialog();
-            }
+            // Create MDI child without 'using' so it isn't disposed immediately after Show()
+            var f = new FrmTagManager(_tagRepo, _modbusService, _log);
+            f.MdiParent = this;
+            f.Show();
         }
 
         private void barButtonItem1_ItemClick(object sender, ItemClickEventArgs e)
