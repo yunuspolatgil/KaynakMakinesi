@@ -29,66 +29,64 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SettingsForm));
             this.dxErrorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
             this.tabSettings = new DevExpress.XtraTab.XtraTabControl();
             this.tabPlc = new DevExpress.XtraTab.XtraTabPage();
-            this.tabDatabase = new DevExpress.XtraTab.XtraTabPage();
-            this.spnPlcPort = new DevExpress.XtraEditors.SpinEdit();
-            this.spnPlcUnitId = new DevExpress.XtraEditors.SpinEdit();
-            this.spnPlcTimeoutMs = new DevExpress.XtraEditors.SpinEdit();
-            this.spnHeartbeatAddress = new DevExpress.XtraEditors.SpinEdit();
-            this.spnHeartbeatIntervalMs = new DevExpress.XtraEditors.SpinEdit();
-            this.txtPlcIp = new DevExpress.XtraEditors.TextEdit();
+            this.PLCPANEL = new DevExpress.XtraEditors.PanelControl();
+            this.labelControl5 = new DevExpress.XtraEditors.LabelControl();
             this.btnTestConnection = new DevExpress.XtraEditors.SimpleButton();
+            this.txtPlcIp = new DevExpress.XtraEditors.TextEdit();
+            this.labelControl6 = new DevExpress.XtraEditors.LabelControl();
+            this.spnPlcPort = new DevExpress.XtraEditors.SpinEdit();
             this.labelControl1 = new DevExpress.XtraEditors.LabelControl();
+            this.labelControl4 = new DevExpress.XtraEditors.LabelControl();
+            this.spnHeartbeatIntervalMs = new DevExpress.XtraEditors.SpinEdit();
             this.labelControl2 = new DevExpress.XtraEditors.LabelControl();
             this.labelControl3 = new DevExpress.XtraEditors.LabelControl();
-            this.labelControl4 = new DevExpress.XtraEditors.LabelControl();
-            this.labelControl5 = new DevExpress.XtraEditors.LabelControl();
-            this.labelControl6 = new DevExpress.XtraEditors.LabelControl();
+            this.spnPlcUnitId = new DevExpress.XtraEditors.SpinEdit();
+            this.spnHeartbeatAddress = new DevExpress.XtraEditors.SpinEdit();
+            this.spnPlcTimeoutMs = new DevExpress.XtraEditors.SpinEdit();
             this.lblTestResult = new DevExpress.XtraEditors.LabelControl();
-            this.PLCPANEL = new DevExpress.XtraEditors.PanelControl();
-            this.txtDbFileName = new DevExpress.XtraEditors.ButtonEdit();
+            this.tabDatabase = new DevExpress.XtraTab.XtraTabPage();
             this.panelControl1 = new DevExpress.XtraEditors.PanelControl();
-            this.lblDbName = new DevExpress.XtraEditors.LabelControl();
             this.labelControl7 = new DevExpress.XtraEditors.LabelControl();
             this.txtDbFullPath = new DevExpress.XtraEditors.TextEdit();
+            this.lblDbName = new DevExpress.XtraEditors.LabelControl();
+            this.txtDbFileName = new DevExpress.XtraEditors.ButtonEdit();
             this.tabLogging = new DevExpress.XtraTab.XtraTabPage();
             this.panelControl2 = new DevExpress.XtraEditors.PanelControl();
+            this.spnLogKeepInMemory = new DevExpress.XtraEditors.SpinEdit();
+            this.cmbLogMinLevel = new DevExpress.XtraEditors.ComboBoxEdit();
             this.labelControl8 = new DevExpress.XtraEditors.LabelControl();
             this.labelControl9 = new DevExpress.XtraEditors.LabelControl();
-            this.cmbLogMinLevel = new DevExpress.XtraEditors.ComboBoxEdit();
-            this.panelControl3 = new DevExpress.XtraEditors.PanelControl();
-            this.spnLogKeepInMemory = new DevExpress.XtraEditors.SpinEdit();
-            this.btnSave = new DevExpress.XtraEditors.SimpleButton();
-            this.btnApply = new DevExpress.XtraEditors.SimpleButton();
-            this.btnCancel = new DevExpress.XtraEditors.SimpleButton();
-            this.btnReload = new DevExpress.XtraEditors.SimpleButton();
             this.btnDefaults = new DevExpress.XtraEditors.SimpleButton();
+            this.btnReload = new DevExpress.XtraEditors.SimpleButton();
+            this.btnCancel = new DevExpress.XtraEditors.SimpleButton();
+            this.btnApply = new DevExpress.XtraEditors.SimpleButton();
+            this.btnSave = new DevExpress.XtraEditors.SimpleButton();
             ((System.ComponentModel.ISupportInitialize)(this.dxErrorProvider1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tabSettings)).BeginInit();
             this.tabSettings.SuspendLayout();
             this.tabPlc.SuspendLayout();
-            this.tabDatabase.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.spnPlcPort.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnPlcUnitId.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnPlcTimeoutMs.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatAddress.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatIntervalMs.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtPlcIp.Properties)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.PLCPANEL)).BeginInit();
             this.PLCPANEL.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.txtDbFileName.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.txtPlcIp.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnPlcPort.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatIntervalMs.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnPlcUnitId.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatAddress.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnPlcTimeoutMs.Properties)).BeginInit();
+            this.tabDatabase.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.panelControl1)).BeginInit();
             this.panelControl1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.txtDbFullPath.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.txtDbFileName.Properties)).BeginInit();
             this.tabLogging.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.panelControl2)).BeginInit();
             this.panelControl2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.cmbLogMinLevel.Properties)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.panelControl3)).BeginInit();
-            this.panelControl3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.spnLogKeepInMemory.Properties)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.cmbLogMinLevel.Properties)).BeginInit();
             this.SuspendLayout();
             // 
             // dxErrorProvider1
@@ -101,7 +99,7 @@
             this.tabSettings.Location = new System.Drawing.Point(0, 0);
             this.tabSettings.Name = "tabSettings";
             this.tabSettings.SelectedTabPage = this.tabPlc;
-            this.tabSettings.Size = new System.Drawing.Size(653, 317);
+            this.tabSettings.Size = new System.Drawing.Size(665, 268);
             this.tabSettings.TabIndex = 0;
             this.tabSettings.TabPages.AddRange(new DevExpress.XtraTab.XtraTabPage[] {
             this.tabPlc,
@@ -110,18 +108,70 @@
             // 
             // tabPlc
             // 
+            this.tabPlc.Controls.Add(this.btnSave);
+            this.tabPlc.Controls.Add(this.btnApply);
+            this.tabPlc.Controls.Add(this.btnTestConnection);
+            this.tabPlc.Controls.Add(this.btnReload);
+            this.tabPlc.Controls.Add(this.btnDefaults);
             this.tabPlc.Controls.Add(this.PLCPANEL);
-            this.tabPlc.Controls.Add(this.lblTestResult);
+            this.tabPlc.Controls.Add(this.btnCancel);
             this.tabPlc.Name = "tabPlc";
-            this.tabPlc.Size = new System.Drawing.Size(651, 292);
+            this.tabPlc.Size = new System.Drawing.Size(660, 242);
             this.tabPlc.Text = "PLC (Modbus TCP)";
             // 
-            // tabDatabase
+            // PLCPANEL
             // 
-            this.tabDatabase.Controls.Add(this.panelControl1);
-            this.tabDatabase.Name = "tabDatabase";
-            this.tabDatabase.Size = new System.Drawing.Size(651, 292);
-            this.tabDatabase.Text = "Veritabanı (SQLite)";
+            this.PLCPANEL.Controls.Add(this.labelControl5);
+            this.PLCPANEL.Controls.Add(this.lblTestResult);
+            this.PLCPANEL.Controls.Add(this.txtPlcIp);
+            this.PLCPANEL.Controls.Add(this.labelControl6);
+            this.PLCPANEL.Controls.Add(this.spnPlcPort);
+            this.PLCPANEL.Controls.Add(this.labelControl1);
+            this.PLCPANEL.Controls.Add(this.labelControl4);
+            this.PLCPANEL.Controls.Add(this.spnHeartbeatIntervalMs);
+            this.PLCPANEL.Controls.Add(this.labelControl2);
+            this.PLCPANEL.Controls.Add(this.labelControl3);
+            this.PLCPANEL.Controls.Add(this.spnPlcUnitId);
+            this.PLCPANEL.Controls.Add(this.spnHeartbeatAddress);
+            this.PLCPANEL.Controls.Add(this.spnPlcTimeoutMs);
+            this.PLCPANEL.Location = new System.Drawing.Point(11, 18);
+            this.PLCPANEL.Name = "PLCPANEL";
+            this.PLCPANEL.Size = new System.Drawing.Size(406, 208);
+            this.PLCPANEL.TabIndex = 15;
+            // 
+            // labelControl5
+            // 
+            this.labelControl5.Location = new System.Drawing.Point(21, 20);
+            this.labelControl5.Name = "labelControl5";
+            this.labelControl5.Size = new System.Drawing.Size(31, 13);
+            this.labelControl5.TabIndex = 12;
+            this.labelControl5.Text = "PLC IP";
+            // 
+            // btnTestConnection
+            // 
+            this.btnTestConnection.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnTestConnection.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnTestConnection.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnTestConnection.ImageOptions.SvgImage")));
+            this.btnTestConnection.Location = new System.Drawing.Point(423, 161);
+            this.btnTestConnection.Name = "btnTestConnection";
+            this.btnTestConnection.Size = new System.Drawing.Size(107, 65);
+            this.btnTestConnection.TabIndex = 7;
+            this.btnTestConnection.Text = "Bağlantı Test";
+            // 
+            // txtPlcIp
+            // 
+            this.txtPlcIp.Location = new System.Drawing.Point(148, 17);
+            this.txtPlcIp.Name = "txtPlcIp";
+            this.txtPlcIp.Size = new System.Drawing.Size(193, 20);
+            this.txtPlcIp.TabIndex = 5;
+            // 
+            // labelControl6
+            // 
+            this.labelControl6.Location = new System.Drawing.Point(21, 150);
+            this.labelControl6.Name = "labelControl6";
+            this.labelControl6.Size = new System.Drawing.Size(90, 13);
+            this.labelControl6.TabIndex = 13;
+            this.labelControl6.Text = "Heartbeat Interval";
             // 
             // spnPlcPort
             // 
@@ -137,47 +187,21 @@
             this.spnPlcPort.Size = new System.Drawing.Size(100, 20);
             this.spnPlcPort.TabIndex = 0;
             // 
-            // spnPlcUnitId
+            // labelControl1
             // 
-            this.spnPlcUnitId.EditValue = new decimal(new int[] {
-            0,
-            0,
-            0,
-            0});
-            this.spnPlcUnitId.Location = new System.Drawing.Point(148, 69);
-            this.spnPlcUnitId.Name = "spnPlcUnitId";
-            this.spnPlcUnitId.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
-            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
-            this.spnPlcUnitId.Size = new System.Drawing.Size(100, 20);
-            this.spnPlcUnitId.TabIndex = 1;
+            this.labelControl1.Location = new System.Drawing.Point(21, 124);
+            this.labelControl1.Name = "labelControl1";
+            this.labelControl1.Size = new System.Drawing.Size(91, 13);
+            this.labelControl1.TabIndex = 8;
+            this.labelControl1.Text = "Heartbeat Address";
             // 
-            // spnPlcTimeoutMs
+            // labelControl4
             // 
-            this.spnPlcTimeoutMs.EditValue = new decimal(new int[] {
-            0,
-            0,
-            0,
-            0});
-            this.spnPlcTimeoutMs.Location = new System.Drawing.Point(148, 95);
-            this.spnPlcTimeoutMs.Name = "spnPlcTimeoutMs";
-            this.spnPlcTimeoutMs.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
-            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
-            this.spnPlcTimeoutMs.Size = new System.Drawing.Size(100, 20);
-            this.spnPlcTimeoutMs.TabIndex = 2;
-            // 
-            // spnHeartbeatAddress
-            // 
-            this.spnHeartbeatAddress.EditValue = new decimal(new int[] {
-            0,
-            0,
-            0,
-            0});
-            this.spnHeartbeatAddress.Location = new System.Drawing.Point(148, 121);
-            this.spnHeartbeatAddress.Name = "spnHeartbeatAddress";
-            this.spnHeartbeatAddress.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
-            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
-            this.spnHeartbeatAddress.Size = new System.Drawing.Size(100, 20);
-            this.spnHeartbeatAddress.TabIndex = 3;
+            this.labelControl4.Location = new System.Drawing.Point(21, 98);
+            this.labelControl4.Name = "labelControl4";
+            this.labelControl4.Size = new System.Drawing.Size(59, 13);
+            this.labelControl4.TabIndex = 11;
+            this.labelControl4.Text = "Zaman Aşımı";
             // 
             // spnHeartbeatIntervalMs
             // 
@@ -192,29 +216,6 @@
             new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
             this.spnHeartbeatIntervalMs.Size = new System.Drawing.Size(100, 20);
             this.spnHeartbeatIntervalMs.TabIndex = 4;
-            // 
-            // txtPlcIp
-            // 
-            this.txtPlcIp.Location = new System.Drawing.Point(148, 17);
-            this.txtPlcIp.Name = "txtPlcIp";
-            this.txtPlcIp.Size = new System.Drawing.Size(193, 20);
-            this.txtPlcIp.TabIndex = 5;
-            // 
-            // btnTestConnection
-            // 
-            this.btnTestConnection.Location = new System.Drawing.Point(517, 157);
-            this.btnTestConnection.Name = "btnTestConnection";
-            this.btnTestConnection.Size = new System.Drawing.Size(107, 47);
-            this.btnTestConnection.TabIndex = 7;
-            this.btnTestConnection.Text = "Bağlantı Test";
-            // 
-            // labelControl1
-            // 
-            this.labelControl1.Location = new System.Drawing.Point(21, 124);
-            this.labelControl1.Name = "labelControl1";
-            this.labelControl1.Size = new System.Drawing.Size(91, 13);
-            this.labelControl1.TabIndex = 8;
-            this.labelControl1.Text = "Heartbeat Address";
             // 
             // labelControl2
             // 
@@ -232,66 +233,64 @@
             this.labelControl3.TabIndex = 10;
             this.labelControl3.Text = "Plc Slave ID";
             // 
-            // labelControl4
+            // spnPlcUnitId
             // 
-            this.labelControl4.Location = new System.Drawing.Point(21, 98);
-            this.labelControl4.Name = "labelControl4";
-            this.labelControl4.Size = new System.Drawing.Size(59, 13);
-            this.labelControl4.TabIndex = 11;
-            this.labelControl4.Text = "Zaman Aşımı";
+            this.spnPlcUnitId.EditValue = new decimal(new int[] {
+            0,
+            0,
+            0,
+            0});
+            this.spnPlcUnitId.Location = new System.Drawing.Point(148, 69);
+            this.spnPlcUnitId.Name = "spnPlcUnitId";
+            this.spnPlcUnitId.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
+            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
+            this.spnPlcUnitId.Size = new System.Drawing.Size(100, 20);
+            this.spnPlcUnitId.TabIndex = 1;
             // 
-            // labelControl5
+            // spnHeartbeatAddress
             // 
-            this.labelControl5.Location = new System.Drawing.Point(21, 20);
-            this.labelControl5.Name = "labelControl5";
-            this.labelControl5.Size = new System.Drawing.Size(31, 13);
-            this.labelControl5.TabIndex = 12;
-            this.labelControl5.Text = "PLC IP";
+            this.spnHeartbeatAddress.EditValue = new decimal(new int[] {
+            0,
+            0,
+            0,
+            0});
+            this.spnHeartbeatAddress.Location = new System.Drawing.Point(148, 121);
+            this.spnHeartbeatAddress.Name = "spnHeartbeatAddress";
+            this.spnHeartbeatAddress.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
+            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
+            this.spnHeartbeatAddress.Size = new System.Drawing.Size(100, 20);
+            this.spnHeartbeatAddress.TabIndex = 3;
             // 
-            // labelControl6
+            // spnPlcTimeoutMs
             // 
-            this.labelControl6.Location = new System.Drawing.Point(21, 150);
-            this.labelControl6.Name = "labelControl6";
-            this.labelControl6.Size = new System.Drawing.Size(90, 13);
-            this.labelControl6.TabIndex = 13;
-            this.labelControl6.Text = "Heartbeat Interval";
+            this.spnPlcTimeoutMs.EditValue = new decimal(new int[] {
+            0,
+            0,
+            0,
+            0});
+            this.spnPlcTimeoutMs.Location = new System.Drawing.Point(148, 95);
+            this.spnPlcTimeoutMs.Name = "spnPlcTimeoutMs";
+            this.spnPlcTimeoutMs.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
+            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
+            this.spnPlcTimeoutMs.Size = new System.Drawing.Size(100, 20);
+            this.spnPlcTimeoutMs.TabIndex = 2;
             // 
             // lblTestResult
             // 
-            this.lblTestResult.Location = new System.Drawing.Point(14, 233);
+            this.lblTestResult.Appearance.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold);
+            this.lblTestResult.Appearance.Options.UseFont = true;
+            this.lblTestResult.Location = new System.Drawing.Point(148, 173);
             this.lblTestResult.Name = "lblTestResult";
-            this.lblTestResult.Size = new System.Drawing.Size(12, 13);
+            this.lblTestResult.Size = new System.Drawing.Size(12, 16);
             this.lblTestResult.TabIndex = 14;
             this.lblTestResult.Text = "...";
             // 
-            // PLCPANEL
+            // tabDatabase
             // 
-            this.PLCPANEL.Controls.Add(this.labelControl5);
-            this.PLCPANEL.Controls.Add(this.btnTestConnection);
-            this.PLCPANEL.Controls.Add(this.txtPlcIp);
-            this.PLCPANEL.Controls.Add(this.labelControl6);
-            this.PLCPANEL.Controls.Add(this.spnPlcPort);
-            this.PLCPANEL.Controls.Add(this.labelControl1);
-            this.PLCPANEL.Controls.Add(this.labelControl4);
-            this.PLCPANEL.Controls.Add(this.spnHeartbeatIntervalMs);
-            this.PLCPANEL.Controls.Add(this.labelControl2);
-            this.PLCPANEL.Controls.Add(this.labelControl3);
-            this.PLCPANEL.Controls.Add(this.spnPlcUnitId);
-            this.PLCPANEL.Controls.Add(this.spnHeartbeatAddress);
-            this.PLCPANEL.Controls.Add(this.spnPlcTimeoutMs);
-            this.PLCPANEL.Location = new System.Drawing.Point(11, 18);
-            this.PLCPANEL.Name = "PLCPANEL";
-            this.PLCPANEL.Size = new System.Drawing.Size(629, 209);
-            this.PLCPANEL.TabIndex = 15;
-            // 
-            // txtDbFileName
-            // 
-            this.txtDbFileName.Location = new System.Drawing.Point(141, 19);
-            this.txtDbFileName.Name = "txtDbFileName";
-            this.txtDbFileName.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
-            new DevExpress.XtraEditors.Controls.EditorButton()});
-            this.txtDbFileName.Size = new System.Drawing.Size(331, 20);
-            this.txtDbFileName.TabIndex = 0;
+            this.tabDatabase.Controls.Add(this.panelControl1);
+            this.tabDatabase.Name = "tabDatabase";
+            this.tabDatabase.Size = new System.Drawing.Size(648, 291);
+            this.tabDatabase.Text = "Veritabanı (SQLite)";
             // 
             // panelControl1
             // 
@@ -303,14 +302,6 @@
             this.panelControl1.Name = "panelControl1";
             this.panelControl1.Size = new System.Drawing.Size(629, 100);
             this.panelControl1.TabIndex = 1;
-            // 
-            // lblDbName
-            // 
-            this.lblDbName.Location = new System.Drawing.Point(14, 22);
-            this.lblDbName.Name = "lblDbName";
-            this.lblDbName.Size = new System.Drawing.Size(65, 13);
-            this.lblDbName.TabIndex = 13;
-            this.lblDbName.Text = "Veritabanı adı";
             // 
             // labelControl7
             // 
@@ -328,11 +319,28 @@
             this.txtDbFullPath.Size = new System.Drawing.Size(193, 20);
             this.txtDbFullPath.TabIndex = 14;
             // 
+            // lblDbName
+            // 
+            this.lblDbName.Location = new System.Drawing.Point(14, 22);
+            this.lblDbName.Name = "lblDbName";
+            this.lblDbName.Size = new System.Drawing.Size(65, 13);
+            this.lblDbName.TabIndex = 13;
+            this.lblDbName.Text = "Veritabanı adı";
+            // 
+            // txtDbFileName
+            // 
+            this.txtDbFileName.Location = new System.Drawing.Point(141, 19);
+            this.txtDbFileName.Name = "txtDbFileName";
+            this.txtDbFileName.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
+            new DevExpress.XtraEditors.Controls.EditorButton()});
+            this.txtDbFileName.Size = new System.Drawing.Size(331, 20);
+            this.txtDbFileName.TabIndex = 0;
+            // 
             // tabLogging
             // 
             this.tabLogging.Controls.Add(this.panelControl2);
             this.tabLogging.Name = "tabLogging";
-            this.tabLogging.Size = new System.Drawing.Size(651, 292);
+            this.tabLogging.Size = new System.Drawing.Size(648, 291);
             this.tabLogging.Text = "Log";
             // 
             // panelControl2
@@ -345,6 +353,29 @@
             this.panelControl2.Name = "panelControl2";
             this.panelControl2.Size = new System.Drawing.Size(629, 100);
             this.panelControl2.TabIndex = 2;
+            // 
+            // spnLogKeepInMemory
+            // 
+            this.spnLogKeepInMemory.EditValue = new decimal(new int[] {
+            0,
+            0,
+            0,
+            0});
+            this.spnLogKeepInMemory.Location = new System.Drawing.Point(141, 45);
+            this.spnLogKeepInMemory.Name = "spnLogKeepInMemory";
+            this.spnLogKeepInMemory.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
+            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
+            this.spnLogKeepInMemory.Size = new System.Drawing.Size(128, 20);
+            this.spnLogKeepInMemory.TabIndex = 17;
+            // 
+            // cmbLogMinLevel
+            // 
+            this.cmbLogMinLevel.Location = new System.Drawing.Point(141, 19);
+            this.cmbLogMinLevel.Name = "cmbLogMinLevel";
+            this.cmbLogMinLevel.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
+            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
+            this.cmbLogMinLevel.Size = new System.Drawing.Size(249, 20);
+            this.cmbLogMinLevel.TabIndex = 16;
             // 
             // labelControl8
             // 
@@ -362,82 +393,61 @@
             this.labelControl9.TabIndex = 13;
             this.labelControl9.Text = "Veritabanı adı";
             // 
-            // cmbLogMinLevel
+            // btnDefaults
             // 
-            this.cmbLogMinLevel.Location = new System.Drawing.Point(141, 19);
-            this.cmbLogMinLevel.Name = "cmbLogMinLevel";
-            this.cmbLogMinLevel.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
-            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
-            this.cmbLogMinLevel.Size = new System.Drawing.Size(249, 20);
-            this.cmbLogMinLevel.TabIndex = 16;
-            // 
-            // panelControl3
-            // 
-            this.panelControl3.Controls.Add(this.btnDefaults);
-            this.panelControl3.Controls.Add(this.btnReload);
-            this.panelControl3.Controls.Add(this.btnCancel);
-            this.panelControl3.Controls.Add(this.btnApply);
-            this.panelControl3.Controls.Add(this.btnSave);
-            this.panelControl3.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelControl3.Location = new System.Drawing.Point(0, 317);
-            this.panelControl3.Name = "panelControl3";
-            this.panelControl3.Size = new System.Drawing.Size(653, 72);
-            this.panelControl3.TabIndex = 1;
-            // 
-            // spnLogKeepInMemory
-            // 
-            this.spnLogKeepInMemory.EditValue = new decimal(new int[] {
-            0,
-            0,
-            0,
-            0});
-            this.spnLogKeepInMemory.Location = new System.Drawing.Point(141, 45);
-            this.spnLogKeepInMemory.Name = "spnLogKeepInMemory";
-            this.spnLogKeepInMemory.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] {
-            new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo)});
-            this.spnLogKeepInMemory.Size = new System.Drawing.Size(128, 20);
-            this.spnLogKeepInMemory.TabIndex = 17;
-            // 
-            // btnSave
-            // 
-            this.btnSave.Location = new System.Drawing.Point(534, 13);
-            this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(107, 47);
-            this.btnSave.TabIndex = 8;
-            this.btnSave.Text = "Kaydet";
-            // 
-            // btnApply
-            // 
-            this.btnApply.Location = new System.Drawing.Point(421, 13);
-            this.btnApply.Name = "btnApply";
-            this.btnApply.Size = new System.Drawing.Size(107, 47);
-            this.btnApply.TabIndex = 9;
-            this.btnApply.Text = "Uygula";
-            // 
-            // btnCancel
-            // 
-            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(308, 13);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(107, 47);
-            this.btnCancel.TabIndex = 10;
-            this.btnCancel.Text = "Vazgeç";
+            this.btnDefaults.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnDefaults.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnDefaults.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnDefaults.ImageOptions.SvgImage")));
+            this.btnDefaults.Location = new System.Drawing.Point(423, 89);
+            this.btnDefaults.Name = "btnDefaults";
+            this.btnDefaults.Size = new System.Drawing.Size(107, 65);
+            this.btnDefaults.TabIndex = 12;
+            this.btnDefaults.Text = "Varsayılanlar";
             // 
             // btnReload
             // 
-            this.btnReload.Location = new System.Drawing.Point(195, 13);
+            this.btnReload.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnReload.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnReload.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnReload.ImageOptions.SvgImage")));
+            this.btnReload.Location = new System.Drawing.Point(536, 90);
             this.btnReload.Name = "btnReload";
-            this.btnReload.Size = new System.Drawing.Size(107, 47);
+            this.btnReload.Size = new System.Drawing.Size(107, 65);
             this.btnReload.TabIndex = 11;
             this.btnReload.Text = "Yeniden Yükle";
             // 
-            // btnDefaults
+            // btnCancel
             // 
-            this.btnDefaults.Location = new System.Drawing.Point(82, 13);
-            this.btnDefaults.Name = "btnDefaults";
-            this.btnDefaults.Size = new System.Drawing.Size(107, 47);
-            this.btnDefaults.TabIndex = 12;
-            this.btnDefaults.Text = "Varsayılanlar";
+            this.btnCancel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.btnCancel.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnCancel.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnCancel.ImageOptions.SvgImage")));
+            this.btnCancel.Location = new System.Drawing.Point(536, 161);
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.Size = new System.Drawing.Size(107, 65);
+            this.btnCancel.TabIndex = 10;
+            this.btnCancel.Text = "Vazgeç";
+            // 
+            // btnApply
+            // 
+            this.btnApply.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnApply.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnApply.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnApply.ImageOptions.SvgImage")));
+            this.btnApply.Location = new System.Drawing.Point(423, 18);
+            this.btnApply.Name = "btnApply";
+            this.btnApply.Size = new System.Drawing.Size(107, 65);
+            this.btnApply.TabIndex = 9;
+            this.btnApply.Text = "Uygula";
+            // 
+            // btnSave
+            // 
+            this.btnSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnSave.ImageOptions.Location = DevExpress.XtraEditors.ImageLocation.TopCenter;
+            this.btnSave.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnSave.ImageOptions.SvgImage")));
+            this.btnSave.Location = new System.Drawing.Point(536, 19);
+            this.btnSave.Name = "btnSave";
+            this.btnSave.Size = new System.Drawing.Size(107, 65);
+            this.btnSave.TabIndex = 8;
+            this.btnSave.Text = "Kaydet";
             // 
             // SettingsForm
             // 
@@ -445,10 +455,9 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(653, 389);
+            this.ClientSize = new System.Drawing.Size(665, 268);
             this.Controls.Add(this.tabSettings);
-            this.Controls.Add(this.panelControl3);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "SettingsForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "SettingsForm";
@@ -456,30 +465,27 @@
             ((System.ComponentModel.ISupportInitialize)(this.tabSettings)).EndInit();
             this.tabSettings.ResumeLayout(false);
             this.tabPlc.ResumeLayout(false);
-            this.tabPlc.PerformLayout();
-            this.tabDatabase.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.spnPlcPort.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnPlcUnitId.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnPlcTimeoutMs.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatAddress.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatIntervalMs.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.txtPlcIp.Properties)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.PLCPANEL)).EndInit();
             this.PLCPANEL.ResumeLayout(false);
             this.PLCPANEL.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.txtDbFileName.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.txtPlcIp.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnPlcPort.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatIntervalMs.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnPlcUnitId.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnHeartbeatAddress.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.spnPlcTimeoutMs.Properties)).EndInit();
+            this.tabDatabase.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.panelControl1)).EndInit();
             this.panelControl1.ResumeLayout(false);
             this.panelControl1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.txtDbFullPath.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.txtDbFileName.Properties)).EndInit();
             this.tabLogging.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.panelControl2)).EndInit();
             this.panelControl2.ResumeLayout(false);
             this.panelControl2.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.cmbLogMinLevel.Properties)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.panelControl3)).EndInit();
-            this.panelControl3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.spnLogKeepInMemory.Properties)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.cmbLogMinLevel.Properties)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -516,7 +522,6 @@
         private DevExpress.XtraEditors.ComboBoxEdit cmbLogMinLevel;
         private DevExpress.XtraEditors.LabelControl labelControl8;
         private DevExpress.XtraEditors.LabelControl labelControl9;
-        private DevExpress.XtraEditors.PanelControl panelControl3;
         private DevExpress.XtraEditors.SimpleButton btnSave;
         private DevExpress.XtraEditors.SimpleButton btnCancel;
         private DevExpress.XtraEditors.SimpleButton btnDefaults;

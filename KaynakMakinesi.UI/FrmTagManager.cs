@@ -4,11 +4,11 @@ using DevExpress.XtraEditors;
 using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Model;
 using KaynakMakinesi.Core.Plc.Service;
+using KaynakMakinesi.Core.Tags;
 using KaynakMakinesi.Infrastructure.Tags;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -94,7 +94,7 @@ namespace KaynakMakinesi.UI
                 if (r.PollMs <= 0) r.PollMs = 250;
             }
 
-            var defs = _rows.Select(r => new KaynakMakinesi.Core.Tags.TagDef
+            var defs = _rows.Select(r => new TagDef
             {
                 Name = r.Name.Trim(),
                 Address = r.Address.Trim(),
@@ -206,6 +206,31 @@ namespace KaynakMakinesi.UI
                         var name = idxName >= 0 && idxName < parts.Length ? parts[idxName].Trim() : null;
                         var addr = idxAddress >= 0 && idxAddress < parts.Length ? parts[idxAddress].Trim() : null;
                         var type = idxType >= 0 && idxType < parts.Length ? parts[idxType].Trim() : "UShort";
+                        // dış kaynaktaki tipleri iç sistem tiplerine çevir
+                        if (!string.IsNullOrWhiteSpace(type))
+                        {
+                            var tLower = type.Trim().ToLowerInvariant();
+                            switch (tLower)
+                            {
+                                case "real":
+                                case "float":
+                                    type = "Float"; // 32-bit float
+                                    break;
+                                case "integer":
+                                case "int":
+                                case "dint":
+                                    type = "Int32"; // 32-bit signed
+                                    break;
+                                case "bit":
+                                case "bool":
+                                    type = "Bool";
+                                    break;
+                                case "word":
+                                case "ushort":
+                                    type = "UShort";
+                                    break;
+                            }
+                        }
                         var group = idxGroup >= 0 && idxGroup < parts.Length ? parts[idxGroup].Trim() : null;
                         var desc = idxDesc >= 0 && idxDesc < parts.Length ? parts[idxDesc].Trim() : null;
                         int poll = 250;
@@ -326,7 +351,7 @@ namespace KaynakMakinesi.UI
                         BeginInvoke((Action)(() =>
                         {
                             row.LastValue = res.Value?.ToString();
-                            row.Status = "OK";
+                            row.Status = "Başarılı";
                             row.UpdatedAt = DateTime.Now;
                             gvTags.RefreshRow(gvTags.GetRowHandle(r));
                         }));
@@ -343,7 +368,7 @@ namespace KaynakMakinesi.UI
                 }
                 catch (Exception ex)
                 {
-                    try { _log?.Error(nameof(FrmTagManager), "ReadSelected hata", ex); } catch { }
+                    try { _log?.Error(nameof(FrmTagManager), "Seçilen hatayı oku", ex); } catch { }
                     BeginInvoke((Action)(() =>
                     {
                         row.Status = "Hata";
@@ -356,8 +381,45 @@ namespace KaynakMakinesi.UI
 
         private async void BtnWriteSelected_ItemClick(object sender, ItemClickEventArgs e)
         {
-            XtraMessageBox.Show("Yazma özelliği bu aşamada desteklenmiyor.", "Bilgi");
-            await Task.CompletedTask;
+            try
+            {
+                if (_modbusService == null)
+                {
+                    XtraMessageBox.Show("Modbus servisi bağlı değil.", "Uyarı");
+                    return;
+                }
+
+                var sels = gvTags.GetSelectedRows();
+                if (sels == null || sels.Length == 0)
+                {
+                    XtraMessageBox.Show("Lütfen tek bir satır seçin.", "Uyarı");
+                    return;
+                }
+                var row = gvTags.GetRow(sels[0]) as TagRow;
+                if (row == null) return;
+
+                // Dokunmatik hesap makinesi ile değer al
+                decimal value;
+                var initial = 0m;
+                decimal.TryParse(row.LastValue, out initial);
+                if (!KaynakMakinesi.UI.Controls.FrmTouchCalculator.TryPrompt(this, $"{row.Name} değer yaz", initial, out value))
+                    return; // vazgeçildi
+
+                var text = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var ok = await _modbusService.WriteTextAsync(row.Address, text, CancellationToken.None).ConfigureAwait(false);
+                BeginInvoke((Action)(() =>
+                {
+                    row.Status = ok ? "Yazma OK" : "Yazma başarısız";
+                    row.UpdatedAt = DateTime.Now;
+                    if (ok) row.LastValue = text;
+                    gvTags.RefreshData();
+                }));
+            }
+            catch (Exception ex)
+            {
+                try { _log?.Error(nameof(FrmTagManager), "WriteSelected hata", ex); } catch { }
+                XtraMessageBox.Show("Yazma sırasında hata: " + ex.Message, "Hata");
+            }
         }
 
         private void BtnStartMonitor_ItemClick(object sender, ItemClickEventArgs e)
@@ -391,7 +453,7 @@ namespace KaynakMakinesi.UI
                                     BeginInvoke((Action)(() =>
                                     {
                                         row.LastValue = res.Value?.ToString();
-                                        row.Status = "OK";
+                                        row.Status = "Başarılı";
                                         row.UpdatedAt = DateTime.Now;
                                         gvTags.RefreshData();
                                     }));

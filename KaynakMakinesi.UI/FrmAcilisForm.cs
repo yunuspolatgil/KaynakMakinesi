@@ -2,9 +2,9 @@
 
 namespace KaynakMakinesi.UI
 {
-    public partial class MainForm : DevExpress.XtraEditors.XtraForm
+    public partial class FrmAcilisForm : DevExpress.XtraEditors.XtraForm
     {
-        public MainForm()
+        public FrmAcilisForm()
         {
             InitializeComponent();
         }

@@ -51,6 +51,7 @@
             this.panelControl1 = new DevExpress.XtraEditors.PanelControl();
             this.gcTags = new DevExpress.XtraGrid.GridControl();
             this.gvTags = new DevExpress.XtraGrid.Views.Grid.GridView();
+            this.colId = new DevExpress.XtraGrid.Columns.GridColumn();
             this.colName = new DevExpress.XtraGrid.Columns.GridColumn();
             this.colAddress = new DevExpress.XtraGrid.Columns.GridColumn();
             this.repoAddress = new DevExpress.XtraEditors.Repository.RepositoryItemTextEdit();
@@ -207,7 +208,6 @@
             this.btnWriteSelected.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnWriteSelected.ImageOptions.SvgImage")));
             this.btnWriteSelected.LargeWidth = 85;
             this.btnWriteSelected.Name = "btnWriteSelected";
-            this.btnWriteSelected.PaintStyle = DevExpress.XtraBars.BarItemPaintStyle.CaptionGlyph;
             this.btnWriteSelected.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
             // 
             // btnStartMonitor
@@ -314,6 +314,7 @@
             // gvTags
             // 
             this.gvTags.Columns.AddRange(new DevExpress.XtraGrid.Columns.GridColumn[] {
+            this.colId,
             this.colName,
             this.colAddress,
             this.colType,
@@ -329,6 +330,12 @@
             this.gvTags.OptionsNavigation.EnterMoveNextColumn = true;
             this.gvTags.OptionsSelection.MultiSelect = true;
             this.gvTags.OptionsView.ShowGroupPanel = false;
+            // 
+            // colId
+            // 
+            this.colId.Caption = "ID";
+            this.colId.FieldName = "Id";
+            this.colId.Name = "colId";
             // 
             // colName
             // 
@@ -477,6 +484,7 @@
             this.Controls.Add(this.panelControl1);
             this.Controls.Add(this.ribbonStatusBar);
             this.Controls.Add(this.ribbonControl1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "FrmTagManager";
             this.Ribbon = this.ribbonControl1;
             this.StatusBar = this.ribbonStatusBar;
@@ -535,5 +543,6 @@
         private DevExpress.XtraGrid.Columns.GridColumn colLastValue;
         private DevExpress.XtraGrid.Columns.GridColumn colQuality;
         private DevExpress.XtraGrid.Columns.GridColumn colUpdatedAt;
+        private DevExpress.XtraGrid.Columns.GridColumn colId;
     }
 }

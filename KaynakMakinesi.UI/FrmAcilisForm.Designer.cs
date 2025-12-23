@@ -1,6 +1,6 @@
 ﻿namespace KaynakMakinesi.UI
 {
-    partial class MainForm
+    partial class FrmAcilisForm
     {
         /// <summary>
         /// Required designer variable.

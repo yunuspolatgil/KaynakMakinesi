@@ -96,6 +96,7 @@
             this.btnSagTorcKalibrasyon.LargeWidth = 90;
             this.btnSagTorcKalibrasyon.Name = "btnSagTorcKalibrasyon";
             this.btnSagTorcKalibrasyon.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnSagTorcKalibrasyon.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnSagTorcKalibrasyon_ItemClick);
             // 
             // btnTagYonetim
             // 
@@ -293,8 +294,10 @@
             this.IsMdiContainer = true;
             this.Name = "FrmAnaForm";
             this.Ribbon = this.ribbon;
+            this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StatusBar = this.ribbonStatusBar;
-            this.Text = "FrmAnaForm";
+            this.Text = "Sivtech Makine";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             ((System.ComponentModel.ISupportInitialize)(this.ribbon)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.xtraTabbedMdiManager1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.listLogs)).EndInit();

@@ -7,14 +7,16 @@ namespace KaynakMakinesi.Application.Plc.Codec
 {
     public sealed class ModbusCodec : IModbusCodec
     {
-        // Senin PLC örneğinde kesin lazım:
+        // Konfigürasyon A:
+        // 32-bit değerlerde word swap AÇIK, word içi byte sırası KAPALI.
+        // Çoğu PLC'de float/int için yaygın dizilim: [loWord][hiWord].
         public bool SwapWordsFor32Bit { get; set; } = true;
 
-        // Şimdilik kapalı kalsın (gerekirse açarız)
-        public bool SwapBytesInWord { get; set; } = false;
+        // Word içi byte sırasını değiştirmiyoruz.
+        public bool SwapBytesInWord { get; set; } = true;
 
         public object Decode(ValueType type, ushort[] regs)
-        {
+        {       
             if (regs == null || regs.Length == 0)
                 throw new ArgumentException("Register boş.");
 

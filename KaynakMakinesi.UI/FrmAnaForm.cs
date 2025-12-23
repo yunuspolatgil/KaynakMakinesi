@@ -6,15 +6,8 @@ using KaynakMakinesi.Core.Plc.Service;
 using KaynakMakinesi.Core.Settings;
 using KaynakMakinesi.Infrastructure.Logging;
 using KaynakMakinesi.Infrastructure.Tags;
+using KaynakMakinesi.UI.Utils;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using ConnectionState = KaynakMakinesi.Core.Plc.ConnectionState;
 
 namespace KaynakMakinesi.UI
@@ -58,7 +51,7 @@ namespace KaynakMakinesi.UI
             // İlk log snapshot (özet liste)
             foreach (var e in _logSink.Snapshot())
                 AddLogToSummary(e);
-            MainForm mainForm = new MainForm();
+            FrmAcilisForm mainForm = new FrmAcilisForm();
             mainForm.MdiParent = this;
             mainForm.Show();
         }
@@ -109,14 +102,12 @@ namespace KaynakMakinesi.UI
             BeginInvoke((Action)(() => UpdateConnUi(e.State, e.Reason)));
         }
 
-
         private void btnTagYonetim_ItemClick(object sender, ItemClickEventArgs e)
         {
-
-            // Create MDI child without 'using' so it isn't disposed immediately after Show()
-            var f = new FrmTagManager(_tagRepo, _modbusService, _log);
-            f.MdiParent = this;
-            f.Show();
+            UiHelpers.ShowMdiSingleton(this,
+                factory: () => new FrmTagManager(_tagRepo, _modbusService, _log),
+                text: "Tag Yönetimi",
+                maximize: true);
         }
 
         private void barButtonItem1_ItemClick(object sender, ItemClickEventArgs e)
@@ -124,8 +115,14 @@ namespace KaynakMakinesi.UI
             using (var f = new SettingsForm(_settingsStore))
             {
                 if (f.ShowDialog(this) == System.Windows.Forms.DialogResult.OK)
-                    _log.Info(nameof(MainForm), "Ayarlar kaydedildi.");
+                    _log.Info(nameof(FrmAcilisForm), "Ayarlar kaydedildi.");
             }
+        }
+
+        private void btnSagTorcKalibrasyon_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            FrmTorcSag frmTorcSag = new FrmTorcSag(_modbusService,_log);
+            frmTorcSag.ShowDialog();
         }
     }
 }
