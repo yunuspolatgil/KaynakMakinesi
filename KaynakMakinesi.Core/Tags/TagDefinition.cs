@@ -13,5 +13,10 @@
         public string TypeOverride { get; set; }    // "Float" vs
         public double Scale { get; set; } = 1.0;
         public double Offset { get; set; } = 0.0;
+        
+        // YENİ EKLENENLER - SqliteTagRepository ile uyumluluk için
+        public string Address { get; set; } = "";   // Tag'in adres string'i (MW0, MI1, vs)
+        public string GroupName { get; set; } = ""; // Tag grubu
+        public int PollMs { get; set; } = 250;      // Polling interval
     }
 }

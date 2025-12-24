@@ -44,11 +44,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Jops\JobRunner.cs" />
+    <Compile Include="Jobs\JobRunner.cs" />
     <Compile Include="Plc\Addressing\AddressResolver.cs" />
     <Compile Include="Plc\Codec\ModbusCodec.cs" />
     <Compile Include="Plc\Service\ModbusService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tags\TagService.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KaynakMakinesi.Core\KaynakMakinesi.Core.csproj">

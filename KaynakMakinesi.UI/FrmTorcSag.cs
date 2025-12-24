@@ -1,9 +1,11 @@
 ﻿using DevExpress.XtraEditors;
 using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Plc.Service;
+using KaynakMakinesi.Core.Tags;
 using KaynakMakinesi.UI.Utils;
 using System;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace KaynakMakinesi.UI
 {
@@ -11,16 +13,14 @@ namespace KaynakMakinesi.UI
     {
         private readonly IModbusService _modbusService;
         private readonly IAppLogger _log;
+        private readonly ITagService _tagService;
 
-        public FrmTorcSag(IModbusService modbusService, IAppLogger log)
+        public FrmTorcSag(IModbusService modbusService, IAppLogger log, ITagService tagService = null)
         {
             InitializeComponent();
             _modbusService = modbusService ?? throw new ArgumentNullException(nameof(modbusService));
             _log = log;
-        }
-
-        private void textEdit1_EditValueChanged(object sender, EventArgs e)
-        {
+            _tagService = tagService;
         }
 
         private void buttonEdit1_ButtonClick(object sender, DevExpress.XtraEditors.Controls.ButtonPressedEventArgs e)
@@ -37,49 +37,75 @@ namespace KaynakMakinesi.UI
 
         private async void btnEksenPozisyonKalibrasyon_Click(object sender, EventArgs e)
         {
-            var text = (txtOlculenPozisyon.Text ?? "").Trim();
-            if (!int.TryParse(text, out var i))
+            try
             {
-                XtraMessageBox.Show("Geçerli bir tam sayı girin.", "Uyarı");
-                return;
-            }
+                if (!decimal.TryParse(txtOlculenPozisyon.Text, out var value))
+                {
+                    XtraMessageBox.Show("Geçerli bir sayı girin", "Hata");
+                    return;
+                }
 
-            var ok = await _modbusService
-                .WriteTextAsync("Olculen_Pozisyon", i.ToString(), CancellationToken.None)
-                .ConfigureAwait(false);
-            // TagManager’da RampaPozKalibrasyonInt tag’i: Address=42029, Type=Int32
-
-            BeginInvoke((Action)(() =>
-            {
+                var ok = await _modbusService.WriteTextAsync("42029", value.ToString(), CancellationToken.None);
                 XtraMessageBox.Show(ok ? "Yazma OK" : "Yazma başarısız", "Bilgi");
-                if (ok) txtOlculenPozisyon.Text = i.ToString();
-            }));
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmTorcSag), "Pozisyon yazma hatası", ex);
+                XtraMessageBox.Show("Hata: " + ex.Message, "Hata");
+            }
         }
 
         private async void btnRampaHizlanmaYaz_Click(object sender, EventArgs e)
         {
-            var text = (txtRampaHizlanma.Text ?? "").Trim();
-
-            if (!int.TryParse(text, out var i))
+            try
             {
-                XtraMessageBox.Show("Geçerli bir tam sayı girin.", "Uyarı");
-                return;
-            }
+                if (!decimal.TryParse(txtRampaHizlanma.Text, out var value))
+                {
+                    XtraMessageBox.Show("Geçerli bir sayı girin", "Hata");
+                    return;
+                }
 
-            var ok = await _modbusService
-                .WriteTextAsync("RampaHizlanma", i.ToString(), CancellationToken.None)
-                .ConfigureAwait(false);
-
-            BeginInvoke((Action)(() =>
-            {
+                var ok = await _modbusService.WriteTextAsync("MW0", value.ToString(), CancellationToken.None);
                 XtraMessageBox.Show(ok ? "Yazma OK" : "Yazma başarısız", "Bilgi");
-            }));
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmTorcSag), "Rampa yazma hatası", ex);
+                XtraMessageBox.Show("Hata: " + ex.Message, "Hata");
+            }
         }
 
-        private void FrmTorcSag_Load(object sender, EventArgs e)
+        private async void FrmTorcSag_Load(object sender, EventArgs e)
         {
-            // Tag tanımı (RampaPozKalibrasyon) app.db'de zaten olmalı.
-            // Gerekirse bu iş, Tag Manager veya başlangıçta merkezi bir yerde yapılmalıdır.
+            await LoadTagValues();
+        }
+
+        private async System.Threading.Tasks.Task LoadTagValues()
+        {
+            try
+            {
+                var result1 = await _modbusService.ReadAutoAsync("42029", CancellationToken.None);
+                if (result1.Success)
+                    txtOlculenPozisyon.Text = result1.Value?.ToString();
+
+                var result2 = await _modbusService.ReadAutoAsync("MW0", CancellationToken.None);
+                if (result2.Success)
+                    txtRampaHizlanma.Text = result2.Value?.ToString();
+
+                var result3 = await _modbusService.ReadAutoAsync("MW1", CancellationToken.None);
+                if (result3.Success)
+                    txtRampaYavaslama.Text = result3.Value?.ToString();
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmTorcSag), "Tag okuma hatası", ex);
+            }
+        }
+
+        private async void btnTumDegerleriOku_Click(object sender, EventArgs e)
+        {
+            await LoadTagValues();
+            XtraMessageBox.Show("Tüm değerler yenilendi.", "Bilgi");
         }
     }
 }

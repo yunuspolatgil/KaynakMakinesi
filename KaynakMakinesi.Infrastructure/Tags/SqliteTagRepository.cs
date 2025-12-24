@@ -84,9 +84,9 @@ CREATE TABLE IF NOT EXISTS Tags(
             }
         }
 
-        public List<TagDef> ListAll()
+        public List<TagDefinition> ListAll() // TagDef yerine TagDefinition döndür
         {
-            var list = new List<TagDef>();
+            var list = new List<TagDefinition>();
             using (var con = (SQLiteConnection)_db.Open())
             using (var cmd = con.CreateCommand())
             {
@@ -97,17 +97,20 @@ CREATE TABLE IF NOT EXISTS Tags(
                 {
                     while (r.Read())
                     {
-                        list.Add(new TagDef
+                        list.Add(new TagDefinition
                         {
                             Id = r.GetInt64(0),
                             Name = r.GetString(1),
-                            Address = r.GetString(2),
+                            Address = r.IsDBNull(2) ? "" : r.GetString(2), // Address sütunu eklendi
                             Address1Based = r.IsDBNull(3) ? 0 : r.GetInt32(3),
-                            Type = r.GetString(4),
-                            GroupName = r.IsDBNull(5) ? "" : r.GetString(5),
+                            TypeOverride = r.IsDBNull(4) ? "" : r.GetString(4),
+                            GroupName = r.IsDBNull(5) ? "" : r.GetString(5), // GroupName eklendi
                             Description = r.IsDBNull(6) ? "" : r.GetString(6),
-                            PollMs = r.GetInt32(7),
-                            ReadOnly = r.GetInt32(8) == 1
+                            PollMs = r.IsDBNull(7) ? 250 : r.GetInt32(7), // PollMs eklendi
+                            ReadOnly = r.IsDBNull(8) ? false : r.GetInt32(8) == 1,
+                            AreaOverride = "", // Gerekirse eklenebilir
+                            Scale = 1.0,
+                            Offset = 0.0
                         });
                     }
                 }
@@ -115,7 +118,7 @@ CREATE TABLE IF NOT EXISTS Tags(
             return list;
         }
 
-        public void UpsertMany(IEnumerable<TagDef> tags)
+        public void UpsertMany(IEnumerable<TagDefinition> tags) // TagDef yerine TagDefinition al
         {
             using (var con = (SQLiteConnection)_db.Open())
             using (var tx = con.BeginTransaction())
@@ -148,12 +151,12 @@ ON CONFLICT(Name) DO UPDATE SET
                 foreach (var t in tags)
                 {
                     cmd.Parameters["@Name"].Value = t.Name ?? "";
-                    cmd.Parameters["@Address"].Value = t.Address ?? "";
+                    cmd.Parameters["@Address"].Value = t.Address ?? ""; // Şimdi mevcut
                     cmd.Parameters["@Address1Based"].Value = t.Address1Based;
-                    cmd.Parameters["@Type"].Value = t.Type ?? "";
-                    cmd.Parameters["@GroupName"].Value = t.GroupName ?? "";
+                    cmd.Parameters["@Type"].Value = t.TypeOverride ?? "";
+                    cmd.Parameters["@GroupName"].Value = t.GroupName ?? ""; // Şimdi mevcut
                     cmd.Parameters["@Description"].Value = t.Description ?? "";
-                    cmd.Parameters["@PollMs"].Value = t.PollMs;
+                    cmd.Parameters["@PollMs"].Value = t.PollMs; // Şimdi mevcut
                     cmd.Parameters["@ReadOnly"].Value = t.ReadOnly ? 1 : 0;
                     cmd.Parameters["@UpdatedAt"].Value = DateTime.Now.ToString("s");
                     cmd.ExecuteNonQuery();

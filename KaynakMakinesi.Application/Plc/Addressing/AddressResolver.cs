@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using KaynakMakinesi.Core.Plc;
 using KaynakMakinesi.Core.Plc.Addressing;
 using KaynakMakinesi.Core.Plc.Profile;
 using KaynakMakinesi.Core.Tags;
@@ -11,9 +12,9 @@ namespace KaynakMakinesi.Application.Plc.Addressing
         private readonly IPlcProfile _profile;
         private readonly ITagRepository _tags;
 
-        // Tag cache: Name -> Tag
-        private volatile Dictionary<string, TagDef> _byName =
-            new Dictionary<string, TagDef>(StringComparer.OrdinalIgnoreCase);
+        // Tag cache: Name -> TagDefinition
+        private volatile Dictionary<string, TagDefinition> _byName =
+            new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase);
 
         public AddressResolver(IPlcProfile profile, ITagRepository tags)
         {
@@ -32,7 +33,7 @@ namespace KaynakMakinesi.Application.Plc.Addressing
             {
                 // ITagRepository içinde ListAll() olmalı
                 var list = _tags.ListAll();
-                var dict = new Dictionary<string, TagDef>(StringComparer.OrdinalIgnoreCase);
+                var dict = new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase);
 
                 if (list != null)
                 {
@@ -50,7 +51,7 @@ namespace KaynakMakinesi.Application.Plc.Addressing
             catch
             {
                 // Resolver patlamasın
-                _byName = new Dictionary<string, TagDef>(StringComparer.OrdinalIgnoreCase);
+                _byName = new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase);
             }
         }
 
@@ -70,28 +71,51 @@ namespace KaynakMakinesi.Application.Plc.Addressing
             var dict = _byName;
             if (dict.TryGetValue(input, out var tag))
             {
-                // TagDef içinde Address1Based var diye varsayıyorum (senin eski kod böyle kullanıyor)
-                if (_profile.TryResolveByModbusAddress(tag.Address1Based, out var addr, out var err))
+                // ÖNEMLİ DÜZELTİLDİ: Address field'ını kullan (Address1Based yerine)
+                // Address boş değilse onu kullan, yoksa Address1Based'i fallback olarak kullan
+                string addressToResolve = !string.IsNullOrWhiteSpace(tag.Address)
+                    ? tag.Address
+                    : tag.Address1Based.ToString();
+
+                // Address bir operand mı (MW0) yoksa sayı mı (42029)?
+                ResolvedAddress addr;
+                string err;
+
+                // Önce operand olarak dene
+                if (_profile.TryResolveByOperand(addressToResolve, out addr, out err))
                 {
-                    addr.ReadOnly = addr.ReadOnly || tag.ReadOnly; // birleşik
+                    addr.ReadOnly = addr.ReadOnly || tag.ReadOnly;
                     res.Success = true;
                     res.Address = addr;
                     res.NormalizedInput = tag.Name;
                     return res;
                 }
 
-                res.Error = "Tag adresi profile uymuyor: " + err;
+                // Operand değilse sayı olarak dene
+                if (int.TryParse(addressToResolve, out var address1Based))
+                {
+                    if (_profile.TryResolveByModbusAddress(address1Based, out addr, out err))
+                    {
+                        addr.ReadOnly = addr.ReadOnly || tag.ReadOnly;
+                        res.Success = true;
+                        res.Address = addr;
+                        res.NormalizedInput = tag.Name;
+                        return res;
+                    }
+                }
+
+                res.Error = $"Tag adresi çözümlenemedi: {addressToResolve} - {err}";
                 return res;
             }
 
             // 2) Sayı mı? (00002 gibi de olur)
-            if (int.TryParse(input, out var address1Based))
+            if (int.TryParse(input, out var address1Based2))
             {
-                if (_profile.TryResolveByModbusAddress(address1Based, out var addr, out var err))
+                if (_profile.TryResolveByModbusAddress(address1Based2, out var addr, out var err))
                 {
                     res.Success = true;
                     res.Address = addr;
-                    res.NormalizedInput = address1Based.ToString();
+                    res.NormalizedInput = address1Based2.ToString();
                     return res;
                 }
 

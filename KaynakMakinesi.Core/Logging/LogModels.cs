@@ -21,8 +21,13 @@ namespace KaynakMakinesi.Core.Logging
     public interface IAppLogger
     {
         void Log(LogLevel level, string source, string message, Exception ex = null);
+        
+        // Convenience methods
+        void Trace(string source, string message);
+        void Debug(string source, string message);
         void Info(string source, string message);
         void Warn(string source, string message);
         void Error(string source, string message, Exception ex = null);
+        void Fatal(string source, string message, Exception ex = null);
     }
 }

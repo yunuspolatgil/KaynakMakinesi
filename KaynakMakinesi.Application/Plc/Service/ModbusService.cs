@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KaynakMakinesi.Core.Abstractions;
@@ -41,7 +42,6 @@ namespace KaynakMakinesi.Application.Plc.Service
                 if (a.ReadOnly) return false;
 
                 valueText = (valueText ?? "").Trim();
-
                 object value;
 
                 if (a.Type == ValueType.Bool)
@@ -67,7 +67,6 @@ namespace KaynakMakinesi.Application.Plc.Service
 
                 if (a.Type == ValueType.Float)
                 {
-                    // Türkçe ondalık desteği + güvenli parse
                     valueText = valueText.Replace(',', '.');
                     if (!float.TryParse(valueText, System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out var f))
@@ -81,7 +80,7 @@ namespace KaynakMakinesi.Application.Plc.Service
             }
             catch (Exception ex)
             {
-                _log.Error(nameof(ModbusService), $"WriteText başarısız input={input}", ex);
+                _log?.Error(nameof(ModbusService), $"WriteText hatası: {input}", ex);
                 return false;
             }
         }
@@ -92,30 +91,27 @@ namespace KaynakMakinesi.Application.Plc.Service
             if (string.IsNullOrWhiteSpace(s)) return false;
 
             s = s.Trim().ToLowerInvariant();
-            if (s == "1" || s == "true" || s == "on" || s == "yes" || s == "evet") { value = true; return true; }
-            if (s == "0" || s == "false" || s == "off" || s == "no" || s == "hayır" || s == "hayir") { value = false; return true; }
+            if (s == "1" || s == "true" || s == "on" || s == "yes" || s == "evet") 
+            { 
+                value = true; 
+                return true; 
+            }
+            if (s == "0" || s == "false" || s == "off" || s == "no" || s == "hayır" || s == "hayir") 
+            { 
+                value = false; 
+                return true; 
+            }
 
             return bool.TryParse(s, out value);
         }
-
-        private bool ParseBool(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return false;
-            s = s.Trim().ToLowerInvariant();
-
-            if (s == "1" || s == "true" || s == "on" || s == "yes" || s == "evet") return true;
-            if (s == "0" || s == "false" || s == "off" || s == "no" || s == "hayır" || s == "hayir") return false;
-
-            // son çare
-            return bool.Parse(s);
-        }
-
 
         public async Task<ModbusReadResult> ReadAutoAsync(string input, CancellationToken ct)
         {
             var rr = _resolver.Resolve(input);
             if (!rr.Success)
+            {
                 return new ModbusReadResult { Success = false, Error = rr.Error };
+            }
 
             var a = rr.Address;
             var s = _settings.Load();
@@ -130,20 +126,14 @@ namespace KaynakMakinesi.Application.Plc.Service
                     {
                         var arr = await _plc.ReadCoilsAsync(unit, a.Start0, 1, ct).ConfigureAwait(false);
                         if (arr == null || arr.Length == 0)
-                        {
-                            _log?.Warn(nameof(ModbusService), $"Coil okuması boş döndü: {input}");
                             return new ModbusReadResult { Success = false, Error = "PLC okuması başarısız", Address = a };
-                        }
                         val = arr[0];
                     }
                     else if (a.Area == ModbusArea.DiscreteInput)
                     {
                         var arr = await _plc.ReadDiscreteInputsAsync(unit, a.Start0, 1, ct).ConfigureAwait(false);
                         if (arr == null || arr.Length == 0)
-                        {
-                            _log?.Warn(nameof(ModbusService), $"Discrete input okuması boş döndü: {input}");
                             return new ModbusReadResult { Success = false, Error = "PLC okuması başarısız", Address = a };
-                        }
                         val = arr[0];
                     }
                     else
@@ -161,11 +151,8 @@ namespace KaynakMakinesi.Application.Plc.Service
                     else
                         return new ModbusReadResult { Success = false, Error = "Register okuma için alan uygun değil." };
 
-                    if (regs == null || regs.Length < a.Length || regs.Length == 0)
-                    {
-                        _log?.Warn(nameof(ModbusService), $"Register okuması beklenenden kısa/dolu değil: {input} beklenen={a.Length} alındı={(regs==null?0:regs.Length)}");
+                    if (regs == null || regs.Length < a.Length)
                         return new ModbusReadResult { Success = false, Error = "PLC okuması başarısız", Address = a };
-                    }
 
                     object value;
                     try
@@ -175,7 +162,7 @@ namespace KaynakMakinesi.Application.Plc.Service
                     catch (Exception ex)
                     {
                         _log?.Error(nameof(ModbusService), $"Decode hatası: {input}", ex);
-                        return new ModbusReadResult { Success = false, Error = "Decode hatası: " + ex.Message, Address = a };
+                        return new ModbusReadResult { Success = false, Error = "Decode hatası", Address = a };
                     }
 
                     return new ModbusReadResult { Success = true, Value = value, Address = a };
@@ -183,7 +170,7 @@ namespace KaynakMakinesi.Application.Plc.Service
             }
             catch (Exception ex)
             {
-                _log.Error(nameof(ModbusService), $"ReadAuto başarısız input={input}", ex);
+                _log?.Error(nameof(ModbusService), $"ReadAuto hatası: {input}", ex);
                 return new ModbusReadResult { Success = false, Error = ex.Message, Address = a };
             }
         }
@@ -218,12 +205,11 @@ namespace KaynakMakinesi.Application.Plc.Service
 
                     await _plc.WriteMultipleRegistersAsync(unit, a.Start0, regs, ct).ConfigureAwait(false);
                     return true;
-                 
                 }
             }
             catch (Exception ex)
             {
-                _log.Error(nameof(ModbusService), $"WriteAuto başarısız input={input}", ex);
+                _log?.Error(nameof(ModbusService), $"WriteAuto hatası: {input}", ex);
                 return false;
             }
         }

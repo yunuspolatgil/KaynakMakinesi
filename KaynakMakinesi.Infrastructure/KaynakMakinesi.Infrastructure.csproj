@@ -79,6 +79,7 @@
     <Compile Include="Jobs\SqliteJobRepository.cs" />
     <Compile Include="Logging\AppLogger.cs" />
     <Compile Include="Logging\InMemoryLogSink.cs" />
+    <Compile Include="Logging\NullLogger.cs" />
     <Compile Include="Logging\SqliteLogSink.cs" />
     <Compile Include="Plc\ModbusPlcClient.cs" />
     <Compile Include="Plc\PlcConnectionSupervisor.cs" />

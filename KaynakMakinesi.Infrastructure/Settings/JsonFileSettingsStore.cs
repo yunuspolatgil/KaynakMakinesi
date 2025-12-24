@@ -24,15 +24,43 @@ namespace KaynakMakinesi.Infrastructure.Settings
         {
             lock (_lock)
             {
+                AppSettings settings;
+                
                 if (!File.Exists(_path))
                 {
-                    var defaults = new AppSettings();
-                    Save(defaults);
-                    return defaults;
+                    settings = new AppSettings();
+                    Save(settings);
+                    return settings;
                 }
 
-                var json = File.ReadAllText(_path, Encoding.UTF8);
-                return JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
+                try
+                {
+                    var json = File.ReadAllText(_path, Encoding.UTF8);
+                    settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
+                    
+                    // Validation - ayarlar geçersizse default'a dön
+                    try
+                    {
+                        settings.Validate();
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        // Log edilebilir ama şimdilik sadece default'a dön
+                        System.Diagnostics.Debug.WriteLine($"UYARI: Geçersiz ayarlar tespit edildi: {ex.Message}. Default ayarlar kullanılacak.");
+                        settings = new AppSettings();
+                        settings.Validate(); // Default ayarlar da geçerli olmalı
+                    }
+                    
+                    return settings;
+                }
+                catch (JsonException ex)
+                {
+                    // JSON parse hatası - default ayarlara dön
+                    System.Diagnostics.Debug.WriteLine($"UYARI: Ayar dosyası okunamadı: {ex.Message}. Default ayarlar kullanılacak.");
+                    settings = new AppSettings();
+                    Save(settings); // Bozuk dosyayı düzelt
+                    return settings;
+                }
             }
         }
 
@@ -40,6 +68,12 @@ namespace KaynakMakinesi.Infrastructure.Settings
         {
             lock (_lock)
             {
+                // Kaydedilmeden önce validation yap
+                if (settings == null)
+                    throw new ArgumentNullException(nameof(settings));
+                
+                settings.Validate();
+
                 var json = JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
 
                 // atomic write: temp -> replace

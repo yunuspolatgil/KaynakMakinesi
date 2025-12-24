@@ -1,4 +1,4 @@
-ï»¿namespace KaynakMakinesi.UI
+namespace KaynakMakinesi.UI
 {
     partial class FrmAnaForm
     {
@@ -37,6 +37,8 @@
             this.btnSolTorcKalibrasyon = new DevExpress.XtraBars.BarButtonItem();
             this.btnSikistirmaKlaibrasyon = new DevExpress.XtraBars.BarButtonItem();
             this.btnSikistirmaRecete = new DevExpress.XtraBars.BarButtonItem();
+            this.btnAddressTest = new DevExpress.XtraBars.BarButtonItem();
+            this.btnRealPlcTest = new DevExpress.XtraBars.BarButtonItem();
             this.barStaticItem1 = new DevExpress.XtraBars.BarStaticItem();
             this.lblConnState = new DevExpress.XtraBars.BarStaticItem();
             this.barStaticItem2 = new DevExpress.XtraBars.BarStaticItem();
@@ -70,6 +72,8 @@
             this.btnSolTorcKalibrasyon,
             this.btnSikistirmaKlaibrasyon,
             this.btnSikistirmaRecete,
+            this.btnAddressTest,
+            this.btnRealPlcTest,
             this.barStaticItem1,
             this.lblConnState,
             this.barStaticItem2,
@@ -79,16 +83,16 @@
             this.barStaticItem4,
             this.lblLastOk});
             this.ribbon.Location = new System.Drawing.Point(0, 0);
-            this.ribbon.MaxItemId = 15;
+            this.ribbon.MaxItemId = 17;
             this.ribbon.Name = "ribbon";
             this.ribbon.Pages.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPage[] {
             this.ribbonPage1});
-            this.ribbon.Size = new System.Drawing.Size(1301, 146);
+            this.ribbon.Size = new System.Drawing.Size(1081, 146);
             this.ribbon.StatusBar = this.ribbonStatusBar;
             // 
             // btnSagTorcKalibrasyon
             // 
-            this.btnSagTorcKalibrasyon.Caption = "SaÄŸ TorÃ§ Kalibrasyon";
+            this.btnSagTorcKalibrasyon.Caption = "Sað Torç Kalibrasyon";
             this.btnSagTorcKalibrasyon.Id = 1;
             this.btnSagTorcKalibrasyon.ImageOptions.Image = global::KaynakMakinesi.UI.Properties.Resources.torc_sol_ayar__130_x_130_piksel_;
             this.btnSagTorcKalibrasyon.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
@@ -100,7 +104,7 @@
             // 
             // btnTagYonetim
             // 
-            this.btnTagYonetim.Caption = "Tag YÃ¶netim";
+            this.btnTagYonetim.Caption = "Tag Yönetim";
             this.btnTagYonetim.Id = 2;
             this.btnTagYonetim.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnTagYonetim.ImageOptions.SvgImage")));
             this.btnTagYonetim.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
@@ -123,7 +127,7 @@
             // 
             // btnSolTorcKalibrasyon
             // 
-            this.btnSolTorcKalibrasyon.Caption = "Sol TorÃ§ Kalibrasyon";
+            this.btnSolTorcKalibrasyon.Caption = "Sol Torç Kalibrasyon";
             this.btnSolTorcKalibrasyon.Id = 4;
             this.btnSolTorcKalibrasyon.ImageOptions.Image = global::KaynakMakinesi.UI.Properties.Resources.torc_sag_ayar__130_x_130_piksel_;
             this.btnSolTorcKalibrasyon.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
@@ -134,7 +138,7 @@
             // 
             // btnSikistirmaKlaibrasyon
             // 
-            this.btnSikistirmaKlaibrasyon.Caption = "SÄ±kÄ±ÅŸtÄ±rma Kalibrasyon";
+            this.btnSikistirmaKlaibrasyon.Caption = "Sýkýþtýrma Kalibrasyon";
             this.btnSikistirmaKlaibrasyon.Id = 5;
             this.btnSikistirmaKlaibrasyon.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnSikistirmaKlaibrasyon.ImageOptions.SvgImage")));
             this.btnSikistirmaKlaibrasyon.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
@@ -144,7 +148,7 @@
             // 
             // btnSikistirmaRecete
             // 
-            this.btnSikistirmaRecete.Caption = "SÄ±kÄ±ÅŸtÄ±rma ReÃ§ete";
+            this.btnSikistirmaRecete.Caption = "Sýkýþtýrma Reçete";
             this.btnSikistirmaRecete.Id = 6;
             this.btnSikistirmaRecete.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnSikistirmaRecete.ImageOptions.SvgImage")));
             this.btnSikistirmaRecete.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
@@ -152,10 +156,32 @@
             this.btnSikistirmaRecete.LargeWidth = 90;
             this.btnSikistirmaRecete.Name = "btnSikistirmaRecete";
             // 
+            // btnAddressTest
+            // 
+            this.btnAddressTest.Caption = "Adres Test";
+            this.btnAddressTest.Id = 15;
+            this.btnAddressTest.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnTagYonetim.ImageOptions.SvgImage")));
+            this.btnAddressTest.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
+            this.btnAddressTest.ItemAppearance.Normal.Options.UseFont = true;
+            this.btnAddressTest.LargeWidth = 90;
+            this.btnAddressTest.Name = "btnAddressTest";
+            
+            // 
+            // btnRealPlcTest
+            // 
+            this.btnRealPlcTest.Caption = "PLC Test";
+            this.btnRealPlcTest.Id = 16;
+            this.btnRealPlcTest.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("barButtonItem1.ImageOptions.SvgImage")));
+            this.btnRealPlcTest.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
+            this.btnRealPlcTest.ItemAppearance.Normal.Options.UseFont = true;
+            this.btnRealPlcTest.LargeWidth = 90;
+            this.btnRealPlcTest.Name = "btnRealPlcTest";
+            
+            // 
             // barStaticItem1
             // 
             this.barStaticItem1.Alignment = DevExpress.XtraBars.BarItemLinkAlignment.Right;
-            this.barStaticItem1.Caption = "BaÄŸlantÄ± Durumu :";
+            this.barStaticItem1.Caption = "Baðlantý Durumu :";
             this.barStaticItem1.Id = 7;
             this.barStaticItem1.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold);
             this.barStaticItem1.ItemAppearance.Normal.Options.UseFont = true;
@@ -209,7 +235,7 @@
             // barStaticItem4
             // 
             this.barStaticItem4.Alignment = DevExpress.XtraBars.BarItemLinkAlignment.Right;
-            this.barStaticItem4.Caption = "Son BaÄŸlantÄ± : ";
+            this.barStaticItem4.Caption = "Son Baðlantý : ";
             this.barStaticItem4.Id = 13;
             this.barStaticItem4.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Bold);
             this.barStaticItem4.ItemAppearance.Normal.Options.UseFont = true;
@@ -246,14 +272,16 @@
             this.ribbonPageGroup2.Alignment = DevExpress.XtraBars.Ribbon.RibbonPageGroupAlignment.Far;
             this.ribbonPageGroup2.ItemLinks.Add(this.btnTagYonetim);
             this.ribbonPageGroup2.ItemLinks.Add(this.barButtonItem1);
+            this.ribbonPageGroup2.ItemLinks.Add(this.btnAddressTest);
+            this.ribbonPageGroup2.ItemLinks.Add(this.btnRealPlcTest);
             this.ribbonPageGroup2.Name = "ribbonPageGroup2";
-            this.ribbonPageGroup2.Text = "Sistem AyarlarÄ±";
+            this.ribbonPageGroup2.Text = "Sistem Ayarlarý";
             // 
             // ribbonPageGroup3
             // 
             this.ribbonPageGroup3.ItemLinks.Add(this.btnSikistirmaRecete);
             this.ribbonPageGroup3.Name = "ribbonPageGroup3";
-            this.ribbonPageGroup3.Text = "ReÃ§eteler";
+            this.ribbonPageGroup3.Text = "Reçeteler";
             // 
             // ribbonStatusBar
             // 
@@ -265,10 +293,10 @@
             this.ribbonStatusBar.ItemLinks.Add(this.lblPlcTarget);
             this.ribbonStatusBar.ItemLinks.Add(this.barStaticItem4, true);
             this.ribbonStatusBar.ItemLinks.Add(this.lblLastOk);
-            this.ribbonStatusBar.Location = new System.Drawing.Point(0, 668);
+            this.ribbonStatusBar.Location = new System.Drawing.Point(0, 400);
             this.ribbonStatusBar.Name = "ribbonStatusBar";
             this.ribbonStatusBar.Ribbon = this.ribbon;
-            this.ribbonStatusBar.Size = new System.Drawing.Size(1301, 23);
+            this.ribbonStatusBar.Size = new System.Drawing.Size(1081, 23);
             // 
             // xtraTabbedMdiManager1
             // 
@@ -278,16 +306,16 @@
             // listLogs
             // 
             this.listLogs.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.listLogs.Location = new System.Drawing.Point(0, 691);
+            this.listLogs.Location = new System.Drawing.Point(0, 423);
             this.listLogs.Name = "listLogs";
-            this.listLogs.Size = new System.Drawing.Size(1301, 103);
+            this.listLogs.Size = new System.Drawing.Size(1081, 103);
             this.listLogs.TabIndex = 3;
             // 
             // FrmAnaForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1301, 794);
+            this.ClientSize = new System.Drawing.Size(1081, 526);
             this.Controls.Add(this.ribbonStatusBar);
             this.Controls.Add(this.listLogs);
             this.Controls.Add(this.ribbon);
@@ -330,5 +358,7 @@
         private DevExpress.XtraBars.BarStaticItem lblLastOk;
         private DevExpress.XtraTabbedMdi.XtraTabbedMdiManager xtraTabbedMdiManager1;
         private DevExpress.XtraEditors.ListBoxControl listLogs;
+        private DevExpress.XtraBars.BarButtonItem btnAddressTest;
+        private DevExpress.XtraBars.BarButtonItem btnRealPlcTest;
     }
 }

@@ -7,29 +7,65 @@ using ValueType = KaynakMakinesi.Core.Plc.ValueType;
 
 namespace KaynakMakinesi.Infrastructure.Plc.Profile
 {
+    /// <summary>
+    /// GMT PLC 496T profili - Gerçek operand tablosuna göre
+    /// </summary>
     public sealed class Gmt496Profile : IPlcProfile
     {
         public string Name => "GMT PLC 496T";
 
+        private static readonly HashSet<int> _integerAddresses = new HashSet<int>
+        {
+            42001, 42003, 42005, 42007, 42009, 42011, 42013, 42015, 42021, 42023
+        };
+
+        private static readonly HashSet<int> _realAddresses = new HashSet<int>
+        {
+            42017, 42019, 42025, 42027, 42029
+        };
+
         private readonly List<ProfileRule> _rules = new List<ProfileRule>
         {
-            // MW0..MW511 => 40001..40512 (1 word)
-            new ProfileRule{ From1Based=40001, To1Based=40512, Area=ModbusArea.HoldingRegister, Type=ValueType.UShort, Length=1, ReadOnly=false, Step=1 },
-
-            // MB0..MB1023 => 00001..01024 (coil bit)
-            new ProfileRule{ From1Based=1, To1Based=1024, Area=ModbusArea.Coil, Type=ValueType.Bool, Length=1, ReadOnly=false, Step=1 },
-
-            // IP0..IP272 => 10001..10273 (discrete input)
-            new ProfileRule{ From1Based=10001, To1Based=10273, Area=ModbusArea.DiscreteInput, Type=ValueType.Bool, Length=1, ReadOnly=true, Step=1 },
-
-            // QP0..QP272 => 02001..02273 (coil bit - output)
-            new ProfileRule{ From1Based=2001, To1Based=2273, Area=ModbusArea.Coil, Type=ValueType.Bool, Length=1, ReadOnly=false, Step=1 },
-
-            // MI0..MI1023 => 41001..43047 (2 word int32)
-            new ProfileRule{ From1Based=41001, To1Based=43047, Area=ModbusArea.HoldingRegister, Type=ValueType.Int32, Length=2, ReadOnly=false, Step=2 },
-
-            // MF0..MF1023 => 44001..46047 (2 word float)
-            new ProfileRule{ From1Based=44001, To1Based=46047, Area=ModbusArea.HoldingRegister, Type=ValueType.Float, Length=2, ReadOnly=false, Step=2 },
+            new ProfileRule
+            { 
+                From1Based = 40001, 
+                To1Based = 49999, 
+                Area = ModbusArea.HoldingRegister, 
+                Type = ValueType.UShort, 
+                Length = 1, 
+                ReadOnly = false, 
+                Step = 1 
+            },
+            new ProfileRule
+            { 
+                From1Based = 1, 
+                To1Based = 9999, 
+                Area = ModbusArea.Coil, 
+                Type = ValueType.Bool, 
+                Length = 1, 
+                ReadOnly = false, 
+                Step = 1 
+            },
+            new ProfileRule
+            { 
+                From1Based = 10001, 
+                To1Based = 19999, 
+                Area = ModbusArea.DiscreteInput, 
+                Type = ValueType.Bool, 
+                Length = 1, 
+                ReadOnly = true, 
+                Step = 1 
+            },
+            new ProfileRule
+            { 
+                From1Based = 30001, 
+                To1Based = 39999, 
+                Area = ModbusArea.InputRegister, 
+                Type = ValueType.UShort, 
+                Length = 1, 
+                ReadOnly = true, 
+                Step = 1 
+            },
         };
 
         public IReadOnlyList<ProfileRule> Rules => _rules;
@@ -54,38 +90,46 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
             var rule = _rules.FirstOrDefault(r => address1Based >= r.From1Based && address1Based <= r.To1Based);
             if (rule == null)
             {
-                error = "Adres profile aralıklarında değil.";
+                error = $"Adres {address1Based} geçerli aralıkta değil.";
                 return false;
             }
 
-            // 2-word tiplerde hizalama kontrolü (MI/MF)
-            if (rule.Step == 2)
+            var baseAddress = GetHumanBase1Based(rule.Area);
+            ushort start0 = (ushort)(address1Based - baseAddress);
+
+            ValueType finalType = rule.Type;
+            ushort finalLength = rule.Length;
+
+            if (rule.Area == ModbusArea.HoldingRegister)
             {
-                var diff = address1Based - rule.From1Based;
-                if (diff % 2 != 0)
+                if (_integerAddresses.Contains(address1Based))
                 {
-                    error = "Adres hizası hatalı (2 word tip). Örn: 41001,41003,... şeklinde olmalı.";
-                    return false;
+                    finalType = ValueType.Int32;
+                    finalLength = 2;
+                }
+                else if (_realAddresses.Contains(address1Based))
+                {
+                    finalType = ValueType.Float;
+                    finalLength = 2;
                 }
             }
 
-            var base1 = GetHumanBase1Based(rule.Area);
-            var start0 = address1Based - base1;
-            if (start0 < 0 || start0 > ushort.MaxValue)
+            if (start0 > 65535)
             {
-                error = "Adres Start0 aralığı geçersiz.";
+                error = $"Start0={start0} çok büyük";
                 return false;
             }
 
             resolved = new ResolvedAddress
             {
                 Area = rule.Area,
-                Type = rule.Type,
-                Length = rule.Length,
+                Type = finalType,
+                Length = finalLength,
                 ReadOnly = rule.ReadOnly,
-                Start0 = (ushort)start0,
+                Start0 = start0,
                 HumanAddress1Based = address1Based
             };
+
             return true;
         }
 
@@ -93,6 +137,7 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
         {
             resolved = null;
             error = null;
+
             if (string.IsNullOrWhiteSpace(operand))
             {
                 error = "Operand boş.";
@@ -101,19 +146,14 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
 
             operand = operand.Trim().ToUpperInvariant();
 
-            // MW12, MI10, MF3, MB7, IP0, QP2
-            string prefix;
-            int idx;
-
-            // basit parse: ilk 2 harf prefix, kalan sayı
             if (operand.Length < 3)
             {
                 error = "Operand formatı geçersiz.";
                 return false;
             }
 
-            prefix = operand.Substring(0, 2);
-            if (!int.TryParse(operand.Substring(2), out idx) || idx < 0)
+            string prefix = operand.Substring(0, 2);
+            if (!int.TryParse(operand.Substring(2), out int idx) || idx < 0)
             {
                 error = "Operand index geçersiz.";
                 return false;
@@ -123,14 +163,38 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
 
             switch (prefix)
             {
-                case "MW": address1Based = 40001 + idx; break;
-                case "MB": address1Based = 1 + idx; break;
-                case "IP": address1Based = 10001 + idx; break;
-                case "QP": address1Based = 2001 + idx; break;
-                case "MI": address1Based = 41001 + (idx * 2); break;
-                case "MF": address1Based = 44001 + (idx * 2); break;
+                case "MW":
+                    address1Based = 40001 + idx;
+                    break;
+                case "MI":
+                    address1Based = 42001 + (idx * 2);
+                    break;
+                case "MF":
+                    var floatAddresses = new[] { 42017, 42019, 42025, 42027, 42029 };
+                    if (idx >= 0 && idx < floatAddresses.Length)
+                    {
+                        address1Based = floatAddresses[idx];
+                    }
+                    else
+                    {
+                        error = $"MF{idx} tanımlı değil. Geçerli: MF0-MF4";
+                        return false;
+                    }
+                    break;
+                case "MB":
+                    address1Based = 1 + idx;
+                    break;
+                case "IP":
+                    address1Based = 10001 + idx;
+                    break;
+                case "QP":
+                    address1Based = 2001 + idx;
+                    break;
+                case "IW":
+                    address1Based = 30001 + idx;
+                    break;
                 default:
-                    error = "Bilinmeyen operand prefix.";
+                    error = $"Bilinmeyen prefix: {prefix}. Geçerli: MW, MI, MF, MB, IP, QP, IW";
                     return false;
             }
 

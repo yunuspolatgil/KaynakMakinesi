@@ -17,8 +17,23 @@ namespace KaynakMakinesi.UI
 {
     public partial class SettingsForm : DevExpress.XtraEditors.XtraForm
     {
+        // Constants for validation ranges
+        private const int MIN_PORT = 1;
+        private const int MAX_PORT = 65535;
+        private const int MIN_UNIT_ID = 1;
+        private const int MAX_UNIT_ID = 247;
+        private const int MIN_TIMEOUT_MS = 100;
+        private const int MAX_TIMEOUT_MS = 30000;
+        private const int MIN_HEARTBEAT_ADDRESS = 0;
+        private const int MAX_HEARTBEAT_ADDRESS = 65535;
+        private const int MIN_HEARTBEAT_INTERVAL_MS = 100;
+        private const int MAX_HEARTBEAT_INTERVAL_MS = 10000;
+        private const int MIN_LOG_KEEP_IN_MEMORY = 100;
+        private const int MAX_LOG_KEEP_IN_MEMORY = 20000;
+
         private readonly ISettingsStore<AppSettings> _store;
         private AppSettings _settings;
+        
         public SettingsForm(ISettingsStore<AppSettings> store)
         {
             InitializeComponent();
@@ -35,19 +50,31 @@ namespace KaynakMakinesi.UI
             btnTestConnection.Click += btnTestConnection_Click;
             txtDbFileName.ButtonClick += txtDbFileName_ButtonClick;
         }
+        
         private void SettingsForm_Load(object sender, EventArgs e)
         {
             // Combo items
             cmbLogMinLevel.Properties.Items.Clear();
             cmbLogMinLevel.Properties.Items.AddRange(new[] { "Trace", "Debug", "Info", "Warn", "Error", "Fatal" });
 
-            // Spin limitler
-            spnPlcPort.Properties.MinValue = 1; spnPlcPort.Properties.MaxValue = 65535;
-            spnPlcUnitId.Properties.MinValue = 1; spnPlcUnitId.Properties.MaxValue = 247;
-            spnPlcTimeoutMs.Properties.MinValue = 100; spnPlcTimeoutMs.Properties.MaxValue = 30000;
-            spnHeartbeatAddress.Properties.MinValue = 0; spnHeartbeatAddress.Properties.MaxValue = 65535;
-            spnHeartbeatIntervalMs.Properties.MinValue = 100; spnHeartbeatIntervalMs.Properties.MaxValue = 10000;
-            spnLogKeepInMemory.Properties.MinValue = 100; spnLogKeepInMemory.Properties.MaxValue = 20000;
+            // Spin limitler - constants kullanarak
+            spnPlcPort.Properties.MinValue = MIN_PORT;
+            spnPlcPort.Properties.MaxValue = MAX_PORT;
+            
+            spnPlcUnitId.Properties.MinValue = MIN_UNIT_ID;
+            spnPlcUnitId.Properties.MaxValue = MAX_UNIT_ID;
+            
+            spnPlcTimeoutMs.Properties.MinValue = MIN_TIMEOUT_MS;
+            spnPlcTimeoutMs.Properties.MaxValue = MAX_TIMEOUT_MS;
+            
+            spnHeartbeatAddress.Properties.MinValue = MIN_HEARTBEAT_ADDRESS;
+            spnHeartbeatAddress.Properties.MaxValue = MAX_HEARTBEAT_ADDRESS;
+            
+            spnHeartbeatIntervalMs.Properties.MinValue = MIN_HEARTBEAT_INTERVAL_MS;
+            spnHeartbeatIntervalMs.Properties.MaxValue = MAX_HEARTBEAT_INTERVAL_MS;
+            
+            spnLogKeepInMemory.Properties.MinValue = MIN_LOG_KEEP_IN_MEMORY;
+            spnLogKeepInMemory.Properties.MaxValue = MAX_LOG_KEEP_IN_MEMORY;
 
             LoadSettingsToUi();
         }

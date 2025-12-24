@@ -65,7 +65,7 @@ namespace KaynakMakinesi.UI
                     Id = t.Id,
                     Name = t.Name,
                     Address = t.Address,
-                    Type = t.Type,
+                    Type = t.TypeOverride,
                     Group = t.GroupName,
                     Description = t.Description,
                     PollMs = t.PollMs,
@@ -94,16 +94,34 @@ namespace KaynakMakinesi.UI
                 if (r.PollMs <= 0) r.PollMs = 250;
             }
 
-            var defs = _rows.Select(r => new TagDef
+            var defs = _rows.Select(r =>
             {
-                Name = r.Name.Trim(),
-                Address = r.Address.Trim(),
-                Type = r.Type.Trim(),
-                GroupName = r.Group ?? "",
-                Description = r.Description ?? "",
-                PollMs = r.PollMs,
-                ReadOnly = r.ReadOnly,
-                Address1Based = 0 // gerekli ise uygun değeri ver
+                // Address1Based hesaplama
+                int address1Based = 0;
+                
+                // Eğer Address bir sayıysa direkt kullan
+                if (int.TryParse(r.Address.Trim(), out var numericAddress))
+                {
+                    address1Based = numericAddress;
+                }
+                else
+                {
+                    // Operand ise (MW0, MI1, vs) - profile'dan çöz
+                    // Not: Burası opsiyonel, Address string olarak saklanıyor
+                    address1Based = 0; // Default
+                }
+                
+                return new TagDefinition
+                {
+                    Name = r.Name.Trim(),
+                    Address = r.Address.Trim(),
+                    TypeOverride = r.Type.Trim(),
+                    GroupName = r.Group ?? "",
+                    Description = r.Description ?? "",
+                    PollMs = r.PollMs,
+                    ReadOnly = r.ReadOnly,
+                    Address1Based = address1Based
+                };
             }).ToList();
 
             _tagRepo.UpsertMany(defs);
@@ -188,14 +206,13 @@ namespace KaynakMakinesi.UI
                     if (lines.Length < 1) return;
 
                     var header = lines[0].Split(new[] { ',', ';', '\t' });
-                    // expect columns like Name, Address, Type, Group, Description, PollMs, ReadOnly
-                    var idxName = Array.FindIndex(header, h => h.Trim().Equals("Name", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Operanlar", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Operanlar", StringComparison.OrdinalIgnoreCase));
+                    var idxName = Array.FindIndex(header, h => h.Trim().Equals("Name", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Operanlar", StringComparison.OrdinalIgnoreCase));
                     var idxAddress = Array.FindIndex(header, h => h.Trim().Equals("Address", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Modbus adresi", StringComparison.OrdinalIgnoreCase));
                     var idxType = Array.FindIndex(header, h => h.Trim().Equals("Type", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Veri tipi", StringComparison.OrdinalIgnoreCase));
                     var idxGroup = Array.FindIndex(header, h => h.Trim().Equals("Group", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Sistem adı", StringComparison.OrdinalIgnoreCase));
                     var idxDesc = Array.FindIndex(header, h => h.Trim().Equals("Description", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Açıklama", StringComparison.OrdinalIgnoreCase));
-                    var idxPoll = Array.FindIndex(header, h => h.Trim().Equals("PollMs", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Poll (ms)", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Açış değeri", StringComparison.OrdinalIgnoreCase));
-                    var idxRo = Array.FindIndex(header, h => h.Trim().Equals("ReadOnly", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Kalcı hafıza", StringComparison.OrdinalIgnoreCase));
+                    var idxPoll = Array.FindIndex(header, h => h.Trim().Equals("PollMs", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Poll (ms)", StringComparison.OrdinalIgnoreCase));
+                    var idxRo = Array.FindIndex(header, h => h.Trim().Equals("ReadOnly", StringComparison.OrdinalIgnoreCase));
 
                     var imported = new List<TagRow>();
                     for (int i = 1; i < lines.Length; i++)
