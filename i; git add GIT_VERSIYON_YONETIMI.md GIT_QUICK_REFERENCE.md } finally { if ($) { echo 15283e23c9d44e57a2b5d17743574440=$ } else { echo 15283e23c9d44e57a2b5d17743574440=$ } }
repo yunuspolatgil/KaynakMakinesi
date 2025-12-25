@@ -1,0 +1,12 @@
+* [33m47051c5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: kritik iyileshtirmeler, validation sistemi, NullLogger pattern ve kapsamli README
+* [33m79a5a4d[m Modbus düzenlemesi yedek
+* [33mbbc0133[m Tag işlemleri tamam
+* [33m2931992[m Tag yönetim devam
+* [33mcfa7b9e[m Modbus adresleme OK
+*   [33mddd04d8[m Merge branch 'master' of https://github.com/yunuspolatgil/KaynakMakinesi
+[32m|[m[33m\[m  
+[32m|[m * [33m8549203[m ReadMe edit
+* [33m|[m [33me023d90[m Modbus adres yapısı test
+[33m|[m[33m/[m  
+* [33m4dcdd7b[m Bağlantı ayarları eklendi
+* [33m5fe9e7e[m PLC bağlantı yapısını oluşturduk

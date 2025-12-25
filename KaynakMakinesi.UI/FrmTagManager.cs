@@ -1,4 +1,4 @@
-ï»¿using DevExpress.XtraBars;
+using DevExpress.XtraBars;
 using DevExpress.XtraBars.Ribbon;
 using DevExpress.XtraEditors;
 using KaynakMakinesi.Core.Logging;
@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -48,9 +49,12 @@ namespace KaynakMakinesi.UI
             btnStartMonitor.ItemClick += BtnStartMonitor_ItemClick;
             btnStopMonitor.ItemClick += BtnStopMonitor_ItemClick;
             btnUndo.ItemClick += BtnUndo_ItemClick;
+            
+            // Yeni butonlar Designer'da event handler'larý tanýmlý
+            // btnDeleteSelected.ItemClick ve btnDeleteAll.ItemClick Designer.cs'de ayarlandý
 
             SetupGrid();
-            LoadFromDb(); // ÅŸimdilik DB yok, Ã¶nce grid Ã§alÄ±ÅŸsÄ±n
+            LoadFromDb();
         }
 
         private void LoadFromDb()
@@ -73,7 +77,6 @@ namespace KaynakMakinesi.UI
                 });
             }
 
-            // snapshot for undo
             SaveSnapshot();
         }
 
@@ -86,9 +89,9 @@ namespace KaynakMakinesi.UI
             foreach (var r in _rows)
             {
                 if (string.IsNullOrWhiteSpace(r.Name))
-                    throw new Exception("Tag AdÄ± boÅŸ olamaz.");
+                    throw new Exception("Tag Adý boþ olamaz.");
                 if (string.IsNullOrWhiteSpace(r.Address))
-                    throw new Exception($"{r.Name} iÃ§in Adres boÅŸ olamaz.");
+                    throw new Exception($"{r.Name} için Adres boþ olamaz.");
                 if (string.IsNullOrWhiteSpace(r.Type))
                     r.Type = "UShort"; // default
                 if (r.PollMs <= 0) r.PollMs = 250;
@@ -96,19 +99,10 @@ namespace KaynakMakinesi.UI
 
             var defs = _rows.Select(r =>
             {
-                // Address1Based hesaplama
                 int address1Based = 0;
-                
-                // EÄŸer Address bir sayÄ±ysa direkt kullan
                 if (int.TryParse(r.Address.Trim(), out var numericAddress))
                 {
                     address1Based = numericAddress;
-                }
-                else
-                {
-                    // Operand ise (MW0, MI1, vs) - profile'dan Ã§Ã¶z
-                    // Not: BurasÄ± opsiyonel, Address string olarak saklanÄ±yor
-                    address1Based = 0; // Default
                 }
                 
                 return new TagDefinition
@@ -125,43 +119,40 @@ namespace KaynakMakinesi.UI
             }).ToList();
 
             _tagRepo.UpsertMany(defs);
-
-            // update snapshot after save
             SaveSnapshot();
         }
 
         private void SetupGrid()
         {
-            // gcTags ve gvTags isimleri sende aynÄ± olmalÄ±
             gcTags.DataSource = _rows;
 
             gvTags.OptionsBehavior.Editable = true;
             gvTags.OptionsView.NewItemRowPosition = DevExpress.XtraGrid.Views.Grid.NewItemRowPosition.Top;
-
-            // Arama (grid Ã¼zerinden)
             gvTags.OptionsFind.AlwaysVisible = true;
             gvTags.OptionsView.ShowAutoFilterRow = true;
-
-            // Dokunmatik hissi
             gvTags.OptionsView.RowAutoHeight = true;
             gvTags.RowHeight = 34;
 
-            // Ä°lk kurulumda kolonlarÄ± otomatik Ã¼retir
+            // ÇOK SEÇME AKTÝF
+            gvTags.OptionsSelection.MultiSelect = true;
+            gvTags.OptionsSelection.MultiSelectMode = DevExpress.XtraGrid.Views.Grid.GridMultiSelectMode.CheckBoxRowSelect;
+            
+            // Checkbox column geniþliði
+            gvTags.OptionsSelection.CheckBoxSelectorColumnWidth = 40;
+
             gvTags.PopulateColumns();
 
-            // Ä°stersen kolon baÅŸlÄ±klarÄ±nÄ± gÃ¼zelleÅŸtir
-            gvTags.Columns[nameof(TagRow.Name)].Caption = "Tag AdÄ±";
+            gvTags.Columns[nameof(TagRow.Name)].Caption = "Tag Adý";
             gvTags.Columns[nameof(TagRow.Address)].Caption = "Adres";
             gvTags.Columns[nameof(TagRow.Type)].Caption = "Tip";
             gvTags.Columns[nameof(TagRow.Group)].Caption = "Grup";
-            gvTags.Columns[nameof(TagRow.Description)].Caption = "AÃ§Ä±klama";
+            gvTags.Columns[nameof(TagRow.Description)].Caption = "Açýklama";
             gvTags.Columns[nameof(TagRow.PollMs)].Caption = "Poll (ms)";
             gvTags.Columns[nameof(TagRow.ReadOnly)].Caption = "RO";
-            gvTags.Columns[nameof(TagRow.LastValue)].Caption = "Son DeÄŸer";
+            gvTags.Columns[nameof(TagRow.LastValue)].Caption = "Son Deðer";
             gvTags.Columns[nameof(TagRow.Status)].Caption = "Durum";
-            gvTags.Columns[nameof(TagRow.UpdatedAt)].Caption = "GÃ¼ncellendi";
+            gvTags.Columns[nameof(TagRow.UpdatedAt)].Caption = "Güncellendi";
 
-            // DB'ye yazÄ±lmayacak kolonlarÄ± saÄŸa al / istersen readonly yap
             gvTags.Columns[nameof(TagRow.LastValue)].OptionsColumn.AllowEdit = false;
             gvTags.Columns[nameof(TagRow.Status)].OptionsColumn.AllowEdit = false;
             gvTags.Columns[nameof(TagRow.UpdatedAt)].OptionsColumn.AllowEdit = false;
@@ -199,79 +190,286 @@ namespace KaynakMakinesi.UI
             {
                 using (var dlg = new OpenFileDialog())
                 {
-                    dlg.Filter = "CSV dosyasÄ± (*.csv)|*.csv|TÃ¼m dosyalar (*.*)|*.*";
+                    dlg.Filter = "CSV/GPF dosyasý (*.csv;*.gpf)|*.csv;*.gpf|Tüm dosyalar (*.*)|*.*";
                     if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-                    var lines = File.ReadAllLines(dlg.FileName);
-                    if (lines.Length < 1) return;
+                    // GMT PLC dosyalarý MUTLAKA UTF-16 LE kullanýr
+                    string[] lines;
+                    try
+                    {
+                        // Direkt UTF-16 ile baþla
+                        lines = File.ReadAllLines(dlg.FileName, Encoding.Unicode);
+                    }
+                    catch
+                    {
+                        // Fallback UTF-8
+                        try
+                        {
+                            lines = File.ReadAllLines(dlg.FileName, Encoding.UTF8);
+                        }
+                        catch
+                        {
+                            // Son çare - Default encoding
+                            lines = File.ReadAllLines(dlg.FileName);
+                        }
+                    }
 
-                    var header = lines[0].Split(new[] { ',', ';', '\t' });
-                    var idxName = Array.FindIndex(header, h => h.Trim().Equals("Name", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Operanlar", StringComparison.OrdinalIgnoreCase));
-                    var idxAddress = Array.FindIndex(header, h => h.Trim().Equals("Address", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Modbus adresi", StringComparison.OrdinalIgnoreCase));
-                    var idxType = Array.FindIndex(header, h => h.Trim().Equals("Type", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Veri tipi", StringComparison.OrdinalIgnoreCase));
-                    var idxGroup = Array.FindIndex(header, h => h.Trim().Equals("Group", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Sistem adÄ±", StringComparison.OrdinalIgnoreCase));
-                    var idxDesc = Array.FindIndex(header, h => h.Trim().Equals("Description", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("AÃ§Ä±klama", StringComparison.OrdinalIgnoreCase));
-                    var idxPoll = Array.FindIndex(header, h => h.Trim().Equals("PollMs", StringComparison.OrdinalIgnoreCase) || h.Trim().Equals("Poll (ms)", StringComparison.OrdinalIgnoreCase));
-                    var idxRo = Array.FindIndex(header, h => h.Trim().Equals("ReadOnly", StringComparison.OrdinalIgnoreCase));
+                    _log?.Debug(nameof(FrmTagManager), $"Toplam {lines.Length} satýr okundu");
+                    if (lines.Length > 0)
+                    {
+                        var preview = lines[0].Length > 100 ? lines[0].Substring(0, 100) : lines[0];
+                        _log?.Debug(nameof(FrmTagManager), $"Ýlk satýr ({lines[0].Length} karakter): {preview}");
+                    }
+
+                    if (lines.Length < 2)
+                    {
+                        XtraMessageBox.Show("Dosya boþ veya geçersiz.", "Hata");
+                        return;
+                    }
+
+                    // Ýlk satýrý atla (metadata varsa)
+                    int headerIndex = 0;
+                    if (lines[0].Contains("AddrTagLib") || lines[0].Contains("Version") || lines[0].Contains("V106"))
+                        headerIndex = 1;
+
+                    if (headerIndex >= lines.Length)
+                    {
+                        XtraMessageBox.Show("Header bulunamadý.", "Hata");
+                        return;
+                    }
+
+                    var headerLine = lines[headerIndex];
+                    
+                    // Delimiter detection - TAB her zaman öncelikli
+                    char delimiter = '\t';
+                    if (!headerLine.Contains('\t'))
+                    {
+                        if (headerLine.Contains(','))
+                            delimiter = ',';
+                        else if (headerLine.Contains(';'))
+                            delimiter = ';';
+                    }
+                    
+                    _log?.Debug(nameof(FrmTagManager), $"Delimiter: '{(delimiter == '\t' ? "TAB" : delimiter.ToString())}', Header Index: {headerIndex}");
+                    _log?.Debug(nameof(FrmTagManager), $"Header line ({headerLine.Length} karakter)");
+
+                    // Basit split ile test et
+                    var headerTest = headerLine.Split(delimiter);
+                    _log?.Debug(nameof(FrmTagManager), $"Basit split sonucu: {headerTest.Length} kolon");
+                    
+                    var header = ParseCsvLine(headerLine, delimiter);
+                    
+                    _log?.Debug(nameof(FrmTagManager), $"Header kolon sayýsý: {header.Length}");
+                    for (int i = 0; i < Math.Min(15, header.Length); i++)
+                    {
+                        var colPreview = header[i];
+                        if (colPreview != null && colPreview.Length > 50)
+                            colPreview = colPreview.Substring(0, 50) + "...";
+                        _log?.Debug(nameof(FrmTagManager), $"  Kolon[{i}]: '{colPreview}' (uzunluk: {header[i]?.Length ?? 0})");
+                    }
+                    
+                    var idxName = FindColumnIndex(header, "AddrTagName", "Name", "Operanlar", "TagName");
+                    var idxAddr = FindColumnIndex(header, "Addr", "Address");
+                    var idxModbusAddr = FindColumnIndex(header, "Modbus adresi", "ModbusAddress", "AddrPLCID");
+                    var idxDataType = FindColumnIndex(header, "AddrTagDataType", "DataType", "Type", "Veri tipi");
+                    var idxAddrType = FindColumnIndex(header, "AddrType");
+                    
+                    _log?.Debug(nameof(FrmTagManager), $"Index - Name:{idxName}, Addr:{idxAddr}, ModbusAddr:{idxModbusAddr}, DataType:{idxDataType}, AddrType:{idxAddrType}");
+                    
+                    // Eðer hala -1 ise, RAW header'ý göster
+                    if (idxName == -1)
+                    {
+                        var debugMsg = "HEADER KOLONLARI:\n";
+                        for (int i = 0; i < Math.Min(10, header.Length); i++)
+                        {
+                            debugMsg += $"[{i}] = '{header[i]}'\n";
+                        }
+                        _log?.Warn(nameof(FrmTagManager), debugMsg);
+                    }
+                    
+                    var idxGroup = FindColumnIndex(header, "Group", "Sistem adý", "GroupName");
+                    var idxDesc = FindColumnIndex(header, "Description", "Açýklama");
+                    var idxPoll = FindColumnIndex(header, "PollMs", "Poll (ms)");
+                    var idxRo = FindColumnIndex(header, "ReadOnly");
 
                     var imported = new List<TagRow>();
-                    for (int i = 1; i < lines.Length; i++)
+                    int skippedCount = 0;
+                    
+                    for (int i = headerIndex + 1; i < lines.Length; i++)
                     {
-                        var parts = lines[i].Split(new[] { ',', ';', '\t' });
-                        if (parts.Length == 0) continue;
-
-                        var name = idxName >= 0 && idxName < parts.Length ? parts[idxName].Trim() : null;
-                        var addr = idxAddress >= 0 && idxAddress < parts.Length ? parts[idxAddress].Trim() : null;
-                        var type = idxType >= 0 && idxType < parts.Length ? parts[idxType].Trim() : "UShort";
-                        // dÄ±ÅŸ kaynaktaki tipleri iÃ§ sistem tiplerine Ã§evir
-                        if (!string.IsNullOrWhiteSpace(type))
+                        if (string.IsNullOrWhiteSpace(lines[i]))
                         {
-                            var tLower = type.Trim().ToLowerInvariant();
-                            switch (tLower)
+                            skippedCount++;
+                            continue;
+                        }
+
+                        var parts = ParseCsvLine(lines[i], delimiter);
+                        if (parts.Length < idxName + 1)
+                        {
+                            skippedCount++;
+                            continue;
+                        }
+
+                        var name = GetValue(parts, idxName)?.Trim('"', ' ');
+                        if (string.IsNullOrWhiteSpace(name))
+                        {
+                            if (i - headerIndex <= 3)
+                                _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: Name boþ (index={idxName}, parts.Length={parts.Length})");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        // ADRES: Ýlk önce "Modbus adresi" kolonuna bak, yoksa AddrType+Addr'dan hesapla
+                        string modbusAddress = null;
+
+                        // 1. Öncelik: "Modbus adresi" (AddrPLCID) kolonu varsa ve boþ deðilse direkt kullan
+                        if (idxModbusAddr >= 0)
+                        {
+                            modbusAddress = GetValue(parts, idxModbusAddr)?.Trim('"', ' ');
+                            // "0" deðerini de geçersiz say (GMT PLC default deðeri)
+                            if (modbusAddress == "0")
                             {
-                                case "real":
-                                case "float":
-                                    type = "Float"; // 32-bit float
-                                    break;
-                                case "integer":
-                                case "int":
-                                case "dint":
-                                    type = "Int32"; // 32-bit signed
-                                    break;
-                                case "bit":
-                                case "bool":
-                                    type = "Bool";
-                                    break;
-                                case "word":
-                                case "ushort":
-                                    type = "UShort";
-                                    break;
+                                modbusAddress = null;
+                            }
+                            
+                            if (!string.IsNullOrWhiteSpace(modbusAddress))
+                            {
+                                _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: 'AddrPLCID' kolonundan alýndý: {modbusAddress}");
                             }
                         }
-                        var group = idxGroup >= 0 && idxGroup < parts.Length ? parts[idxGroup].Trim() : null;
-                        var desc = idxDesc >= 0 && idxDesc < parts.Length ? parts[idxDesc].Trim() : null;
-                        int poll = 250;
-                        if (idxPoll >= 0 && idxPoll < parts.Length) int.TryParse(parts[idxPoll], out poll);
-                        bool ro = false;
-                        if (idxRo >= 0 && idxRo < parts.Length) bool.TryParse(parts[idxRo], out ro);
+                        
+                        // 2. Alternatif: AddrType ve Addr'den Modbus adresini hesapla
+                        // DÝKKAT: GMT PLC'de Addr kolonu direkt Modbus offset deðerini içerir
+                        // Örnek: AddrType=4, Addr=2001 -> 42001 (40000 + 2001)
+                        //        AddrType=4, Addr=1    -> 40001 (40000 + 1)
+                        //        AddrType=1, Addr=1    -> 10001 (10000 + 1)
+                        //        AddrType=0, Addr=1    -> 1 (0 + 1)
+                        if (string.IsNullOrWhiteSpace(modbusAddress))
+                        {
+                            var addr = GetValue(parts, idxAddr)?.Trim('"', ' ');
+                            var addrType = GetValue(parts, idxAddrType)?.Trim('"', ' ');
+                            
+                            if (!string.IsNullOrWhiteSpace(addrType) && !string.IsNullOrWhiteSpace(addr))
+                            {
+                                if (int.TryParse(addrType, out var typeCode) && int.TryParse(addr, out var address))
+                                {
+                                    // GMT PLC AddrType -> Modbus base address mapping
+                                    int baseAddress = 0;
+                                    switch (typeCode)
+                                    {
+                                        case 0: // Coil (MB) - Coil adresleri 1-based
+                                            // Addr=1 -> address1Based=1, Addr=2 -> address1Based=2
+                                            baseAddress = 0;  // Base 0 çünkü Addr zaten 1'den baþlýyor
+                                            break;
+                                        case 1: // Discrete Input (IP) - base = 10000
+                                            baseAddress = 10000;
+                                            break;
+                                        case 2: // Input Register (IW) - base = 30000
+                                            baseAddress = 30000;
+                                            break;
+                                        case 4: // Holding Register (MW, MI, MF) - base = 40000
+                                            baseAddress = 40000;
+                                            break;
+                                        default:
+                                            _log?.Warn(nameof(FrmTagManager), $"Satýr {i}: Bilinmeyen AddrType={typeCode}");
+                                            break;
+                                    }
+                                    
+                                    // Coil için Addr direkt adrestir (1-based)
+                                    // Diðerleri için base + offset
+                                    int modbusAddr;
+                                    if (typeCode == 0)
+                                    {
+                                        // Coil: Addr direkt 1-based adrestir
+                                        modbusAddr = address;
+                                    }
+                                    else
+                                    {
+                                        // Diðerleri: Base + Offset
+                                        modbusAddr = baseAddress + address;
+                                    }
+                                    
+                                    modbusAddress = modbusAddr.ToString();
+                                    
+                                    _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: AddrType={typeCode}, Addr={address}, Base={baseAddress} -> Modbus={modbusAddress}");
+                                }
+                            }
+                        }
+                        
+                        // 3. Son çare: Addr kolonunu direkt kullan
+                        if (string.IsNullOrWhiteSpace(modbusAddress) && idxAddr >= 0)
+                        {
+                            modbusAddress = GetValue(parts, idxAddr)?.Trim('"', ' ');
+                            _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: Addr kolonundan direkt kullanýldý: {modbusAddress}");
+                        }
+                        
+                        _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: Name='{name}', Final Address='{modbusAddress}'");
 
-                        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(addr)) continue;
+                        if (string.IsNullOrWhiteSpace(modbusAddress))
+                        {
+                            _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: Adres boþ, atlandý");
+                            skippedCount++;
+                            continue;
+                        }
+
+                        var dataTypeStr = GetValue(parts, idxDataType)?.Trim('"', ' ');
+                        var type = ConvertGmtDataTypeToInternal(dataTypeStr);
+
+                        var group = GetValue(parts, idxGroup)?.Trim('"', ' ');
+                        var desc = GetValue(parts, idxDesc)?.Trim('"', ' ');
+                        
+                        int poll = 250;
+                        var pollStr = GetValue(parts, idxPoll);
+                        if (!string.IsNullOrWhiteSpace(pollStr))
+                            int.TryParse(pollStr, out poll);
+
+                        bool ro = false;
+                        var roStr = GetValue(parts, idxRo);
+                        if (!string.IsNullOrWhiteSpace(roStr))
+                        {
+                            ro = roStr.Trim() == "1" || roStr.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
 
                         imported.Add(new TagRow
                         {
-                            Name = name ?? addr,
-                            Address = addr ?? "",
-                            Type = string.IsNullOrWhiteSpace(type) ? "UShort" : type,
-                            Group = group,
-                            Description = desc,
+                            Name = name,
+                            Address = modbusAddress,
+                            Type = type,
+                            Group = group ?? "",
+                            Description = desc ?? "",
                             PollMs = poll <= 0 ? 250 : poll,
                             ReadOnly = ro
                         });
+                        
+                        if (imported.Count <= 3)
+                            _log?.Debug(nameof(FrmTagManager), $"  Tag eklendi: {name} -> {modbusAddress} ({type})");
                     }
+
+                    _log?.Info(nameof(FrmTagManager), $"Ýçe aktarma tamamlandý: {imported.Count} adet tag eklendi, {skippedCount} satýr atlandý");
 
                     if (imported.Count == 0)
                     {
-                        XtraMessageBox.Show("Ä°Ã§e aktarÄ±lan veri bulunamadÄ±.", "Bilgi");
+                        var msg = $"Ýçe aktarýlan veri bulunamadý.\n\n" +
+                                  $"Toplam satýr: {lines.Length}\n" +
+                                  $"Header index: {headerIndex}\n" +
+                                  $"Atlanan satýr: {skippedCount}\n\n" +
+                                  $"Kolon indexleri:\n" +
+                                  $"  Name: {idxName}\n" +
+                                  $"  Addr: {idxAddr}\n" +
+                                  $"  ModbusAddr: {idxModbusAddr}\n" +
+                                  $"  AddrType: {idxAddrType}\n" +
+                                  $"  DataType: {idxDataType}\n\n" +
+                                  $"Delimiter: {(delimiter == '\t' ? "TAB" : delimiter.ToString())}\n" +
+                                  $"Header kolon sayýsý: {header.Length}\n\n" +
+                                  $"Ýlk 5 header kolonu:\n";
+                        
+                        for (int i = 0; i < Math.Min(5, header.Length); i++)
+                        {
+                            msg += $"  [{i}] = '{header[i]}'\n";
+                        }
+                        
+                        msg += "\nLoglara bakýn veya dosyayý kontrol edin.";
+                        XtraMessageBox.Show(msg, "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         return;
                     }
 
@@ -280,13 +478,13 @@ namespace KaynakMakinesi.UI
 
                     SaveSnapshot();
 
-                    XtraMessageBox.Show("Ä°Ã§e aktarÄ±ldÄ±. DeÄŸiÅŸiklikleri kalÄ±cÄ± hale getirmek iÃ§in 'Kaydet' butonuna basÄ±n.", "Tamam");
+                    XtraMessageBox.Show($"{imported.Count} adet tag içe aktarýldý.\nDeðiþiklikleri kalýcý hale getirmek için 'Kaydet' butonuna basýn.", "Tamam");
                 }
             }
             catch (Exception ex)
             {
-                try { _log?.Error(nameof(FrmTagManager), "Import hatasÄ±", ex); } catch { }
-                XtraMessageBox.Show("Ä°Ã§e aktarma sÄ±rasÄ±nda hata: " + ex.Message, "Hata");
+                try { _log?.Error(nameof(FrmTagManager), "Import hatasý", ex); } catch { }
+                XtraMessageBox.Show("Ýçe aktarma sýrasýnda hata:\n" + ex.Message + "\n\n" + ex.StackTrace, "Hata");
             }
         }
 
@@ -296,53 +494,67 @@ namespace KaynakMakinesi.UI
             {
                 using (var dlg = new SaveFileDialog())
                 {
-                    dlg.Filter = "CSV dosyasÄ± (*.csv)|*.csv|TÃ¼m dosyalar (*.*)|*.*";
-                    dlg.FileName = "tags_export.csv";
+                    dlg.Filter = "CSV Dosyasý (*.csv)|*.csv|Tüm Dosyalar (*.*)|*.*";
+                    dlg.DefaultExt = "csv";
+                    dlg.AddExtension = true;
                     if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-                    using (var sw = new StreamWriter(dlg.FileName, false))
+                    var sb = new StringBuilder();
+
+                    // Header yaz
+                    for (int i = 0; i < gvTags.Columns.Count; i++)
                     {
-                        sw.WriteLine("Name,Address,Type,Group,Description,PollMs,ReadOnly");
-                        foreach (var r in _rows)
-                        {
-                            sw.WriteLine($"\"{Escape(r.Name)}\",\"{Escape(r.Address)}\",\"{Escape(r.Type)}\",\"{Escape(r.Group)}\",\"{Escape(r.Description)}\",{r.PollMs},{(r.ReadOnly?1:0)}");
-                        }
+                        var col = gvTags.Columns[i];
+                        if (!col.Visible) continue;
+
+                        if (sb.Length > 0) sb.Append(',');
+                        sb.Append('"' + col.Caption + '"');
                     }
 
-                    XtraMessageBox.Show("DÄ±ÅŸa aktarma tamamlandÄ±.", "Tamam");
+                    sb.AppendLine();
+
+                    // Data yaz
+                    foreach (var row in _rows)
+                    {
+                        for (int i = 0; i < gvTags.Columns.Count; i++)
+                        {
+                            var col = gvTags.Columns[i];
+                            if (!col.Visible) continue;
+
+                            if (i > 0) sb.Append(',');
+
+                            var value = row.GetType().GetProperty(col.FieldName).GetValue(row, null);
+                            if (value != null)
+                            {
+                                sb.Append('"' + value.ToString().Replace("\"", "\"\"") + '"');
+                            }
+                        }
+
+                        sb.AppendLine();
+                    }
+
+                    File.WriteAllText(dlg.FileName, sb.ToString(), Encoding.UTF8);
+
+                    XtraMessageBox.Show("Veriler baþarýyla dýþa aktarýldý.", "Tamam", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
-                try { _log?.Error(nameof(FrmTagManager), "Export hatasÄ±", ex); } catch { }
-                XtraMessageBox.Show("DÄ±ÅŸa aktarma sÄ±rasÄ±nda hata: " + ex.Message, "Hata");
+                XtraMessageBox.Show("Dýþa aktarma sýrasýnda hata:\n" + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        private static string Escape(string s)
-        {
-            if (s == null) return string.Empty;
-            return s.Replace("\"", "\"\"");
         }
 
         private void BtnReload_ItemClick(object sender, ItemClickEventArgs e)
         {
-            try
-            {
-                LoadFromDb();
-                XtraMessageBox.Show("Yenilendi.", "Tamam");
-            }
-            catch (Exception ex)
-            {
-                XtraMessageBox.Show("Yenileme hatasÄ±: " + ex.Message, "Hata");
-            }
+            LoadFromDb();
         }
 
         private void BtnNewTag_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var t = new TagRow { Name = "YeniTag", Address = "", Type = "UShort", PollMs = 250, ReadOnly = false };
-            _rows.Insert(0, t);
+            var newItem = new TagRow { Name = "<< Yeni Tag >>", Address = "0", Type = "UShort", PollMs = 250 };
+            _rows.Insert(0, newItem);
             gvTags.FocusedRowHandle = 0;
+            gvTags.FocusedColumn = gvTags.Columns[nameof(TagRow.Name)];
             gvTags.ShowEditor();
         }
 
@@ -350,7 +562,7 @@ namespace KaynakMakinesi.UI
         {
             if (_modbusService == null)
             {
-                XtraMessageBox.Show("Modbus servisi baÄŸlÄ± deÄŸil.", "UyarÄ±");
+                XtraMessageBox.Show("Modbus servisi baðlý deðil.", "Uyarý");
                 return;
             }
 
@@ -368,7 +580,7 @@ namespace KaynakMakinesi.UI
                         BeginInvoke((Action)(() =>
                         {
                             row.LastValue = res.Value?.ToString();
-                            row.Status = "BaÅŸarÄ±lÄ±";
+                            row.Status = "Baþarýlý";
                             row.UpdatedAt = DateTime.Now;
                             gvTags.RefreshRow(gvTags.GetRowHandle(r));
                         }));
@@ -385,7 +597,7 @@ namespace KaynakMakinesi.UI
                 }
                 catch (Exception ex)
                 {
-                    try { _log?.Error(nameof(FrmTagManager), "SeÃ§ilen hatayÄ± oku", ex); } catch { }
+                    try { _log?.Error(nameof(FrmTagManager), "Seçilen hatayý oku", ex); } catch { }
                     BeginInvoke((Action)(() =>
                     {
                         row.Status = "Hata";
@@ -402,31 +614,30 @@ namespace KaynakMakinesi.UI
             {
                 if (_modbusService == null)
                 {
-                    XtraMessageBox.Show("Modbus servisi baÄŸlÄ± deÄŸil.", "UyarÄ±");
+                    XtraMessageBox.Show("Modbus servisi baðlý deðil.", "Uyarý");
                     return;
                 }
 
                 var sels = gvTags.GetSelectedRows();
                 if (sels == null || sels.Length == 0)
                 {
-                    XtraMessageBox.Show("LÃ¼tfen tek bir satÄ±r seÃ§in.", "UyarÄ±");
+                    XtraMessageBox.Show("Lütfen tek bir satýr seçin.", "Uyarý");
                     return;
                 }
                 var row = gvTags.GetRow(sels[0]) as TagRow;
                 if (row == null) return;
 
-                // Dokunmatik hesap makinesi ile deÄŸer al
                 decimal value;
                 var initial = 0m;
                 decimal.TryParse(row.LastValue, out initial);
-                if (!KaynakMakinesi.UI.Controls.FrmTouchCalculator.TryPrompt(this, $"{row.Name} deÄŸer yaz", initial, out value))
-                    return; // vazgeÃ§ildi
+                if (!KaynakMakinesi.UI.Controls.FrmTouchCalculator.TryPrompt(this, $"{row.Name} deðer yaz", initial, out value))
+                    return;
 
                 var text = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var ok = await _modbusService.WriteTextAsync(row.Address, text, CancellationToken.None).ConfigureAwait(false);
                 BeginInvoke((Action)(() =>
                 {
-                    row.Status = ok ? "Yazma OK" : "Yazma baÅŸarÄ±sÄ±z";
+                    row.Status = ok ? "Yazma OK" : "Yazma baþarýsýz";
                     row.UpdatedAt = DateTime.Now;
                     if (ok) row.LastValue = text;
                     gvTags.RefreshData();
@@ -435,7 +646,7 @@ namespace KaynakMakinesi.UI
             catch (Exception ex)
             {
                 try { _log?.Error(nameof(FrmTagManager), "WriteSelected hata", ex); } catch { }
-                XtraMessageBox.Show("Yazma sÄ±rasÄ±nda hata: " + ex.Message, "Hata");
+                XtraMessageBox.Show("Yazma sýrasýnda hata: " + ex.Message, "Hata");
             }
         }
 
@@ -443,11 +654,11 @@ namespace KaynakMakinesi.UI
         {
             if (_modbusService == null)
             {
-                XtraMessageBox.Show("Modbus servisi baÄŸlÄ± deÄŸil.", "UyarÄ±");
+                XtraMessageBox.Show("Modbus servisi baðlý deðil.", "Uyarý");
                 return;
             }
 
-            if (_monitorCts != null) return; // zaten Ã§alÄ±ÅŸÄ±yor
+            if (_monitorCts != null) return;
 
             _monitorCts = new CancellationTokenSource();
             var ct = _monitorCts.Token;
@@ -470,7 +681,7 @@ namespace KaynakMakinesi.UI
                                     BeginInvoke((Action)(() =>
                                     {
                                         row.LastValue = res.Value?.ToString();
-                                        row.Status = "BaÅŸarÄ±lÄ±";
+                                        row.Status = "Baþarýlý";
                                         row.UpdatedAt = DateTime.Now;
                                         gvTags.RefreshData();
                                     }));
@@ -488,7 +699,7 @@ namespace KaynakMakinesi.UI
                             catch (OperationCanceledException) { break; }
                             catch (Exception ex)
                             {
-                                try { _log?.Error(nameof(FrmTagManager), "Monitor okuma hatasÄ±", ex); } catch { }
+                                try { _log?.Error(nameof(FrmTagManager), "Monitor okuma hatasý", ex); } catch { }
                                 BeginInvoke((Action)(() =>
                                 {
                                     row.Status = "Hata";
@@ -497,25 +708,23 @@ namespace KaynakMakinesi.UI
                                 }));
                             }
 
-                            // wait row-specific poll or small delay
                             await Task.Delay(Math.Max(100, row.PollMs), ct).ConfigureAwait(false);
                         }
 
-                        // kÄ±sa aralÄ±k
                         await Task.Delay(100, ct).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception ex)
                 {
-                    try { _log?.Error(nameof(FrmTagManager), "Monitor dÃ¶ngÃ¼sÃ¼ hata verdi", ex); } catch { }
+                    try { _log?.Error(nameof(FrmTagManager), "Monitor döngüsü hata verdi", ex); } catch { }
                 }
             }, ct).ContinueWith(t =>
             {
                 if (t.IsFaulted) try { _log?.Error(nameof(FrmTagManager), "Monitor background task faulted", t.Exception); } catch { }
             }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
 
-            XtraMessageBox.Show("Ä°zleme baÅŸlatÄ±ldÄ±.", "Bilgi");
+            XtraMessageBox.Show("Ýzleme baþlatýldý.", "Bilgi");
         }
 
         private void BtnStopMonitor_ItemClick(object sender, ItemClickEventArgs e)
@@ -526,44 +735,126 @@ namespace KaynakMakinesi.UI
                 try { _monitorTask?.Wait(500); } catch { }
                 _monitorCts = null;
                 _monitorTask = null;
-                XtraMessageBox.Show("Ä°zleme durduruldu.", "Bilgi");
+                XtraMessageBox.Show("Ýzleme durduruldu.", "Bilgi");
             }
             catch (Exception ex)
             {
-                try { _log?.Error(nameof(FrmTagManager), "Monitor stop hatasÄ±", ex); } catch { }
-                XtraMessageBox.Show("Ä°zleme durdurulurken hata: " + ex.Message, "Hata");
+                try { _log?.Error(nameof(FrmTagManager), "Monitor stop hatasý", ex); } catch { }
+                XtraMessageBox.Show("Ýzleme durdurulurken hata: " + ex.Message, "Hata");
             }
         }
 
         private void BtnUndo_ItemClick(object sender, ItemClickEventArgs e)
         {
             RestoreSnapshot();
-            XtraMessageBox.Show("Geri alÄ±ndÄ±.", "Bilgi");
+            gvTags.RefreshData();
         }
 
-        private void btnKaydet_Click(object sender, EventArgs e)
+        private void gvTags_RowUpdated(object sender, DevExpress.XtraGrid.Views.Base.RowObjectEventArgs e)
         {
             try
             {
                 SaveToDb();
-                XtraMessageBox.Show("Kaydedildi.", "Tamam");
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show("Kaydetme hatasÄ±: " + ex.Message, "Hata");
+                XtraMessageBox.Show("Kaydetme sýrasýnda hata:\n" + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void btnSil_Click(object sender, EventArgs e)
+        // CSV satýrlarýný ayýrmak için yardýmcý metodlar
+        private string[] ParseCsvLine(string line, char delimiter)
         {
-            var row = gvTags.GetFocusedRow() as TagRow;
-            if (row == null) return;
+            var parts = new List<string>();
+            var sb = new StringBuilder();
+            bool inQuotes = false;
 
-            if (XtraMessageBox.Show($"{row.Name} silinsin mi?", "Onay", MessageBoxButtons.YesNo) != DialogResult.Yes)
-                return;
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
 
-            _tagRepo.DeleteByName(row.Name);
-            _rows.Remove(row);
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (c == delimiter && !inQuotes)
+                {
+                    parts.Add(sb.ToString().Trim());
+                    sb.Clear();
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+
+            parts.Add(sb.ToString().Trim());
+
+            return parts.ToArray();
+        }
+
+        private int FindColumnIndex(string[] header, params string[] possibleNames)
+        {
+            for (int i = 0; i < header.Length; i++)
+            {
+                foreach (var name in possibleNames)
+                {
+                    if (header[i].Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        private string GetValue(string[] parts, int index)
+        {
+            if (index < 0 || index >= parts.Length) return null;
+            return parts[index];
+        }
+
+        private string ConvertGmtDataTypeToInternal(string dataTypeStr)
+        {
+            if (string.IsNullOrWhiteSpace(dataTypeStr))
+                return "UShort";
+
+            dataTypeStr = dataTypeStr.Trim();
+
+            if (int.TryParse(dataTypeStr, out var code))
+            {
+                switch (code)
+                {
+                    case 0: return "Bool";
+                    case 1: return "UShort";
+                    case 2: return "Int32";
+                    case 4: return "Float";
+                    default: return "UShort";
+                }
+            }
+
+            var lower = dataTypeStr.ToLowerInvariant();
+            switch (lower)
+            {
+                case "real":
+                case "float":
+                    return "Float";
+                case "integer":
+                case "int":
+                case "dint":
+                    return "Int32";
+                case "bit":
+                case "bool":
+                case "boolean":
+                    return "UShort";
+                case "word":
+                case "ushort":
+                case "uint":
+                    return "UShort";
+                default:
+                    return "UShort";
+            }
         }
 
         private void btnSaveChanges_ItemClick(object sender, ItemClickEventArgs e)
@@ -572,7 +863,7 @@ namespace KaynakMakinesi.UI
             {
                 SaveToDb();
                 XtraMessageBox.Show("Kaydedildi.", "Tamam");
-                LoadFromDb(); // idâ€™ler/normalize iÃ§in yeniden yÃ¼klemek iyi
+                LoadFromDb();
             }
             catch (Exception ex)
             {
@@ -585,12 +876,143 @@ namespace KaynakMakinesi.UI
             var row = gvTags.GetFocusedRow() as TagRow;
             if (row == null) return;
 
-            if (XtraMessageBox.Show($"{row.Name} silinsin mi?", "Onay",
-                    MessageBoxButtons.YesNo) != DialogResult.Yes)
+            if (XtraMessageBox.Show($"{row.Name} silinsin mi?", "Onay", MessageBoxButtons.YesNo) != DialogResult.Yes)
                 return;
 
             _tagRepo.DeleteByName(row.Name);
             _rows.Remove(row);
+        }
+
+        /// <summary>
+        /// Seçili tüm tag'leri siler
+        /// </summary>
+        private void BtnDeleteSelected_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                var selectedRows = gvTags.GetSelectedRows();
+                if (selectedRows == null || selectedRows.Length == 0)
+                {
+                    XtraMessageBox.Show("Lütfen silmek için en az bir tag seçin.", "Uyarý", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Seçili tag'leri listele
+                var tagsToDelete = new List<TagRow>();
+                foreach (var rowHandle in selectedRows)
+                {
+                    var row = gvTags.GetRow(rowHandle) as TagRow;
+                    if (row != null)
+                        tagsToDelete.Add(row);
+                }
+
+                if (tagsToDelete.Count == 0) return;
+
+                // Onay mesajý
+                var confirmMsg = tagsToDelete.Count == 1
+                    ? $"'{tagsToDelete[0].Name}' tag'i silinsin mi?"
+                    : $"{tagsToDelete.Count} adet tag silinsin mi?\n\n" +
+                      $"Ýlk 5 tag:\n{string.Join("\n", tagsToDelete.Take(5).Select(t => $"- {t.Name}"))}";
+
+                if (tagsToDelete.Count > 5)
+                    confirmMsg += $"\n... ve {tagsToDelete.Count - 5} tane daha";
+
+                var result = XtraMessageBox.Show(confirmMsg, "Toplu Silme Onayý", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result != DialogResult.Yes)
+                    return;
+
+                // Database'den sil
+                int deletedCount = 0;
+                foreach (var tag in tagsToDelete)
+                {
+                    try
+                    {
+                        _tagRepo.DeleteByName(tag.Name);
+                        _rows.Remove(tag);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _log?.Error(nameof(FrmTagManager), $"Tag silme hatasý: {tag.Name}", ex);
+                    }
+                }
+
+                gvTags.RefreshData();
+                SaveSnapshot();
+
+                XtraMessageBox.Show($"{deletedCount} adet tag baþarýyla silindi.", "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                _log?.Info(nameof(FrmTagManager), $"{deletedCount} adet tag toplu silindi");
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmTagManager), "Toplu silme hatasý", ex);
+                XtraMessageBox.Show($"Toplu silme sýrasýnda hata:\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Tüm tag'leri siler (Dikkatli kullanýlmalý!)
+        /// </summary>
+        private void BtnDeleteAll_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                if (_rows.Count == 0)
+                {
+                    XtraMessageBox.Show("Silinecek tag bulunamadý.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var confirmMsg = $"DÝKKAT! TÜM TAG'LER SÝLÝNECEK!\n\n" +
+                                $"Toplam {_rows.Count} adet tag kalýcý olarak silinecek.\n\n" +
+                                $"Bu iþlem GERÝ ALINAMAZ!\n\n" +
+                                $"Devam etmek istediðinize emin misiniz?";
+
+                var result = XtraMessageBox.Show(confirmMsg, "TEHLÝKELÝ ÝÞLEM - Tümünü Sil", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (result != DialogResult.Yes)
+                    return;
+
+                // Çift onay
+                var doubleCheck = XtraMessageBox.Show(
+                    $"Son onay: {_rows.Count} adet tag SÝLÝNSÝN MÝ?", 
+                    "Son Onay", 
+                    MessageBoxButtons.YesNo, 
+                    MessageBoxIcon.Stop);
+                
+                if (doubleCheck != DialogResult.Yes)
+                    return;
+
+                // Tüm tag'leri sil
+                var allTags = _rows.ToList();
+                int deletedCount = 0;
+                
+                foreach (var tag in allTags)
+                {
+                    try
+                    {
+                        _tagRepo.DeleteByName(tag.Name);
+                        deletedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _log?.Error(nameof(FrmTagManager), $"Tag silme hatasý: {tag.Name}", ex);
+                    }
+                }
+
+                _rows.Clear();
+                gvTags.RefreshData();
+                SaveSnapshot();
+
+                XtraMessageBox.Show($"{deletedCount} adet tag silindi.", "Tamamlandý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                _log?.Warn(nameof(FrmTagManager), $"TÜM TAG'LER SÝLÝNDÝ! Toplam: {deletedCount}");
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmTagManager), "Tümünü silme hatasý", ex);
+                XtraMessageBox.Show($"Silme sýrasýnda hata:\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

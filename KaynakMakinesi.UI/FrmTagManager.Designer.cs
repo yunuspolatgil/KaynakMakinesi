@@ -41,6 +41,8 @@
             this.btnWriteSelected = new DevExpress.XtraBars.BarButtonItem();
             this.btnStartMonitor = new DevExpress.XtraBars.BarButtonItem();
             this.btnStopMonitor = new DevExpress.XtraBars.BarButtonItem();
+            this.btnDeleteSelected = new DevExpress.XtraBars.BarButtonItem();
+            this.btnDeleteAll = new DevExpress.XtraBars.BarButtonItem();
             this.ribbonPage1 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             this.grpFile = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             this.grpCrud = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
@@ -101,9 +103,11 @@
             this.btnReadSelected,
             this.btnWriteSelected,
             this.btnStartMonitor,
-            this.btnStopMonitor});
+            this.btnStopMonitor,
+            this.btnDeleteSelected,
+            this.btnDeleteAll});
             this.ribbonControl1.Location = new System.Drawing.Point(0, 0);
-            this.ribbonControl1.MaxItemId = 13;
+            this.ribbonControl1.MaxItemId = 15;
             this.ribbonControl1.Name = "ribbonControl1";
             this.ribbonControl1.Pages.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPage[] {
             this.ribbonPage1,
@@ -230,6 +234,28 @@
             this.btnStopMonitor.PaintStyle = DevExpress.XtraBars.BarItemPaintStyle.CaptionGlyph;
             this.btnStopMonitor.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
             // 
+            // btnDeleteSelected
+            // 
+            this.btnDeleteSelected.Caption = "Seçilenleri Sil";
+            this.btnDeleteSelected.Id = 13;
+            this.btnDeleteSelected.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnDeleteSelected.ImageOptions.SvgImage")));
+            this.btnDeleteSelected.LargeWidth = 110;
+            this.btnDeleteSelected.Name = "btnDeleteSelected";
+            this.btnDeleteSelected.PaintStyle = DevExpress.XtraBars.BarItemPaintStyle.CaptionGlyph;
+            this.btnDeleteSelected.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnDeleteSelected.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.BtnDeleteSelected_ItemClick);
+            // 
+            // btnDeleteAll
+            // 
+            this.btnDeleteAll.Caption = "Tümünü Sil";
+            this.btnDeleteAll.Id = 14;
+            this.btnDeleteAll.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnDeleteAll.ImageOptions.SvgImage")));
+            this.btnDeleteAll.LargeWidth = 95;
+            this.btnDeleteAll.Name = "btnDeleteAll";
+            this.btnDeleteAll.PaintStyle = DevExpress.XtraBars.BarItemPaintStyle.CaptionGlyph;
+            this.btnDeleteAll.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.btnDeleteAll.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.BtnDeleteAll_ItemClick);
+            // 
             // ribbonPage1
             // 
             this.ribbonPage1.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] {
@@ -252,6 +278,8 @@
             this.grpCrud.ItemLinks.Add(this.btnNewTag);
             this.grpCrud.ItemLinks.Add(this.btnSaveChanges);
             this.grpCrud.ItemLinks.Add(this.btnDeleteTag);
+            this.grpCrud.ItemLinks.Add(this.btnDeleteSelected);
+            this.grpCrud.ItemLinks.Add(this.btnDeleteAll);
             this.grpCrud.ItemLinks.Add(this.btnUndo);
             this.grpCrud.Name = "grpCrud";
             this.grpCrud.Text = "Düzenleme";
@@ -518,6 +546,8 @@
         private DevExpress.XtraBars.BarButtonItem btnWriteSelected;
         private DevExpress.XtraBars.BarButtonItem btnStartMonitor;
         private DevExpress.XtraBars.BarButtonItem btnStopMonitor;
+        private DevExpress.XtraBars.BarButtonItem btnDeleteSelected;
+        private DevExpress.XtraBars.BarButtonItem btnDeleteAll;
         private DevExpress.XtraBars.Ribbon.RibbonPage ribbonPage1;
         private DevExpress.XtraBars.Ribbon.RibbonPageGroup grpFile;
         private DevExpress.XtraBars.Ribbon.RibbonPageGroup grpCrud;
