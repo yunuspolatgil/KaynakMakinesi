@@ -1,6 +1,8 @@
 using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Plc.Service;
 using KaynakMakinesi.Core.Tags;
+using KaynakMakinesi.Core.Entities;
+using KaynakMakinesi.Core.Repositories;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,17 +14,17 @@ namespace KaynakMakinesi.Application.Tags
 {
     public class TagService : ITagService
     {
-        private readonly ITagRepository _tagRepository;
+        private readonly ITagEntityRepository _tagRepository;
         private readonly IModbusService _modbusService;
         private readonly IAppLogger _logger;
         
         // Cache için thread-safe koleksiyonlar
         private readonly ConcurrentDictionary<string, TagReadResult> _cache = new ConcurrentDictionary<string, TagReadResult>();
-        private readonly ConcurrentDictionary<string, TagDefinition> _tagDefinitions = new ConcurrentDictionary<string, TagDefinition>();
+        private readonly ConcurrentDictionary<string, TagEntity> _tagDefinitions = new ConcurrentDictionary<string, TagEntity>();
         
         public event EventHandler<TagUpdatedEventArgs> TagUpdated;
 
-        public TagService(ITagRepository tagRepository, IModbusService modbusService, IAppLogger logger)
+        public TagService(ITagEntityRepository tagRepository, IModbusService modbusService, IAppLogger logger)
         {
             _tagRepository = tagRepository ?? throw new ArgumentNullException(nameof(tagRepository));
             _modbusService = modbusService ?? throw new ArgumentNullException(nameof(modbusService));
@@ -63,15 +65,22 @@ namespace KaynakMakinesi.Application.Tags
                     }
                 }
 
-                // ÖNEMLÝ DÜZELTÝLDÝ: Tag adý yerine Address kullan!
-                var addressToRead = !string.IsNullOrEmpty(tagDef.Address) 
-                    ? tagDef.Address 
-                    : tagDef.Address1Based.ToString();
+                // Address kontrolü
+                if (string.IsNullOrWhiteSpace(tagDef.Address))
+                {
+                    return new TagReadResult
+                    {
+                        Success = false,
+                        Error = $"'{tagName}' tag'i için Address tanýmlanmamýþ!",
+                        TagName = tagName,
+                        Timestamp = DateTime.Now
+                    };
+                }
 
-                _logger?.Info(nameof(TagService), $"Tag okunuyor: {tagName} -> Adres: {addressToRead}");
+                _logger?.Debug(nameof(TagService), $"Tag okunuyor: {tagName} -> Adres: {tagDef.Address}");
 
                 // PLC'den oku
-                var modbusResult = await _modbusService.ReadAutoAsync(addressToRead, ct).ConfigureAwait(false);
+                var modbusResult = await _modbusService.ReadAutoAsync(tagDef.Address, ct).ConfigureAwait(false);
                 
                 var result = new TagReadResult
                 {
@@ -91,13 +100,20 @@ namespace KaynakMakinesi.Application.Tags
                 // Event'i tetikle
                 TagUpdated?.Invoke(this, new TagUpdatedEventArgs { TagName = tagName, Result = result });
 
-                _logger?.Info(nameof(TagService), $"Tag okundu: {tagName} = {result.Value}");
+                if (result.Success)
+                {
+                    _logger?.Debug(nameof(TagService), $"Tag okundu: {tagName} = {result.Value}");
+                }
+                else
+                {
+                    _logger?.Warn(nameof(TagService), $"Tag okuma hatasý: {tagName} - {result.Error}");
+                }
 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger?.Error(nameof(TagService), $"Tag okuma hatasý: {tagName}", ex);
+                _logger?.Error(nameof(TagService), $"Tag okuma exception: {tagName}", ex);
                 return new TagReadResult 
                 { 
                     Success = false, 
@@ -132,14 +148,16 @@ namespace KaynakMakinesi.Application.Tags
                     return false;
                 }
 
-                // ÖNEMLÝ DÜZELTÝLDÝ: Tag adý yerine Address kullan!
-                var addressToWrite = !string.IsNullOrEmpty(tagDef.Address) 
-                    ? tagDef.Address 
-                    : tagDef.Address1Based.ToString();
+                // Address kontrolü
+                if (string.IsNullOrWhiteSpace(tagDef.Address))
+                {
+                    _logger?.Error(nameof(TagService), $"'{tagName}' tag'i için Address tanýmlanmamýþ!");
+                    return false;
+                }
 
-                _logger?.Info(nameof(TagService), $"Tag yazýlýyor: {tagName} -> Adres: {addressToWrite} = {value}");
+                _logger?.Debug(nameof(TagService), $"Tag yazýlýyor: {tagName} -> Adres: {tagDef.Address} = {value}");
 
-                var success = await _modbusService.WriteAutoAsync(addressToWrite, value, ct).ConfigureAwait(false);
+                var success = await _modbusService.WriteAutoAsync(tagDef.Address, value, ct).ConfigureAwait(false);
 
                 if (success)
                 {
@@ -157,7 +175,11 @@ namespace KaynakMakinesi.Application.Tags
                     // Event'i tetikle
                     TagUpdated?.Invoke(this, new TagUpdatedEventArgs { TagName = tagName, Result = result });
                     
-                    _logger?.Info(nameof(TagService), $"Tag yazýldý: {tagName} = {value}");
+                    _logger?.Debug(nameof(TagService), $"Tag yazýldý: {tagName} = {value}");
+                }
+                else
+                {
+                    _logger?.Warn(nameof(TagService), $"Tag yazma baþarýsýz: {tagName}");
                 }
 
                 return success;
@@ -187,18 +209,20 @@ namespace KaynakMakinesi.Application.Tags
                     }
                 }
 
-                // ÖNEMLÝ DÜZELTÝLDÝ: Tag adý yerine Address kullan!
-                var addressToWrite = !string.IsNullOrEmpty(tagDef.Address) 
-                    ? tagDef.Address 
-                    : tagDef.Address1Based.ToString();
+                // Address kontrolü
+                if (string.IsNullOrWhiteSpace(tagDef.Address))
+                {
+                    _logger?.Error(nameof(TagService), $"'{tagName}' tag'i için Address tanýmlanmamýþ!");
+                    return false;
+                }
 
-                _logger?.Info(nameof(TagService), $"Tag metin yazýlýyor: {tagName} -> Adres: {addressToWrite} = {valueText}");
+                _logger?.Debug(nameof(TagService), $"Tag metin yazýlýyor: {tagName} -> Adres: {tagDef.Address} = {valueText}");
 
-                var success = await _modbusService.WriteTextAsync(addressToWrite, valueText, ct).ConfigureAwait(false);
+                var success = await _modbusService.WriteTextAsync(tagDef.Address, valueText, ct).ConfigureAwait(false);
 
                 if (success)
                 {
-                    _logger?.Info(nameof(TagService), $"Tag metin olarak yazýldý: {tagName} = {valueText}");
+                    _logger?.Debug(nameof(TagService), $"Tag metin olarak yazýldý: {tagName} = {valueText}");
                 }
 
                 return success;
@@ -236,14 +260,16 @@ namespace KaynakMakinesi.Application.Tags
         public List<TagDefinition> GetAllTags()
         {
             RefreshTagDefinitions();
-            return _tagDefinitions.Values.ToList();
+            // TagEntity -> TagDefinition dönüþümü (backward compatibility için)
+            return _tagDefinitions.Values.Select(MapToLegacyDefinition).ToList();
         }
 
         public List<TagDefinition> GetTagsByGroup(string groupName)
         {
             RefreshTagDefinitions();
             return _tagDefinitions.Values
-                .Where(t => string.Equals(t.Description, groupName, StringComparison.OrdinalIgnoreCase))
+                .Where(t => string.Equals(t.GroupName, groupName, StringComparison.OrdinalIgnoreCase))
+                .Select(MapToLegacyDefinition)
                 .ToList();
         }
 
@@ -284,7 +310,7 @@ namespace KaynakMakinesi.Application.Tags
         {
             try
             {
-                var allTags = _tagRepository.ListAll();
+                var allTags = _tagRepository.GetAll();
                 
                 _tagDefinitions.Clear();
                 
@@ -293,12 +319,32 @@ namespace KaynakMakinesi.Application.Tags
                     _tagDefinitions.TryAdd(tagDef.Name, tagDef);
                 }
 
-                _logger?.Info(nameof(TagService), $"Tag tanýmlarý yenilendi: {_tagDefinitions.Count} adet");
+                _logger?.Debug(nameof(TagService), $"Tag tanýmlarý yenilendi: {_tagDefinitions.Count} adet");
             }
             catch (Exception ex)
             {
                 _logger?.Error(nameof(TagService), "Tag tanýmlarý yenilenirken hata", ex);
             }
+        }
+        
+        /// <summary>
+        /// TagEntity -> TagDefinition (backward compatibility için)
+        /// </summary>
+        private TagDefinition MapToLegacyDefinition(TagEntity entity)
+        {
+            return new TagDefinition
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Address = entity.Address,
+                TypeOverride = entity.DataType,
+                GroupName = entity.GroupName,
+                Description = entity.Description,
+                PollMs = entity.PollMs,
+                ReadOnly = entity.ReadOnly,
+                Scale = entity.Scale,
+                Offset = entity.Offset
+            };
         }
     }
 }

@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using KaynakMakinesi.Core.Plc;
 using KaynakMakinesi.Core.Plc.Addressing;
 using KaynakMakinesi.Core.Plc.Profile;
-using KaynakMakinesi.Core.Tags;
+using KaynakMakinesi.Core.Entities;
+using KaynakMakinesi.Core.Repositories;
 
 namespace KaynakMakinesi.Application.Plc.Addressing
 {
     public sealed class AddressResolver : IAddressResolver
     {
         private readonly IPlcProfile _profile;
-        private readonly ITagRepository _tags;
+        private readonly ITagEntityRepository _tagRepo;
 
-        // Tag cache: Name -> TagDefinition
-        private volatile Dictionary<string, TagDefinition> _byName =
-            new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase);
+        // Tag cache: Name -> TagEntity
+        private volatile Dictionary<string, TagEntity> _byName =
+            new Dictionary<string, TagEntity>(StringComparer.OrdinalIgnoreCase);
 
-        public AddressResolver(IPlcProfile profile, ITagRepository tags)
+        public AddressResolver(IPlcProfile profile, ITagEntityRepository tagRepo)
         {
             _profile = profile ?? throw new ArgumentNullException(nameof(profile));
-            _tags = tags ?? throw new ArgumentNullException(nameof(tags));
+            _tagRepo = tagRepo ?? throw new ArgumentNullException(nameof(tagRepo));
 
             ReloadTags(); // ilk yükleme
         }
@@ -31,9 +32,8 @@ namespace KaynakMakinesi.Application.Plc.Addressing
         {
             try
             {
-                // ITagRepository içinde ListAll() olmalı
-                var list = _tags.ListAll();
-                var dict = new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase);
+                var list = _tagRepo.GetAll();
+                var dict = new Dictionary<string, TagEntity>(StringComparer.OrdinalIgnoreCase);
 
                 if (list != null)
                 {
@@ -51,7 +51,7 @@ namespace KaynakMakinesi.Application.Plc.Addressing
             catch
             {
                 // Resolver patlamasın
-                _byName = new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase);
+                _byName = new Dictionary<string, TagEntity>(StringComparer.OrdinalIgnoreCase);
             }
         }
 
@@ -67,72 +67,56 @@ namespace KaynakMakinesi.Application.Plc.Addressing
 
             input = input.Trim();
 
-            // 1) Tag adı mı?
+            // 1) Tag adı mı kontrol et
             var dict = _byName;
             if (dict.TryGetValue(input, out var tag))
             {
-                // ÖNEMLİ DÜZELTİLDİ: Address field'ını kullan (Address1Based yerine)
-                // Address boş değilse onu kullan, yoksa Address1Based'i fallback olarak kullan
-                string addressToResolve = !string.IsNullOrWhiteSpace(tag.Address)
-                    ? tag.Address
-                    : tag.Address1Based.ToString();
-
-                // Address bir operand mı (MW0) yoksa sayı mı (42029)?
-                ResolvedAddress addr;
-                string err;
-
-                // Önce operand olarak dene
-                if (_profile.TryResolveByOperand(addressToResolve, out addr, out err))
+                // Tag bulundu - Address field'ını kullan
+                if (string.IsNullOrWhiteSpace(tag.Address))
                 {
-                    addr.ReadOnly = addr.ReadOnly || tag.ReadOnly;
-                    res.Success = true;
-                    res.Address = addr;
-                    res.NormalizedInput = tag.Name;
+                    res.Error = $"Tag '{tag.Name}' için Address tanımlanmamış!";
                     return res;
                 }
 
-                // Operand değilse sayı olarak dene
-                if (int.TryParse(addressToResolve, out var address1Based))
-                {
-                    if (_profile.TryResolveByModbusAddress(address1Based, out addr, out err))
-                    {
-                        addr.ReadOnly = addr.ReadOnly || tag.ReadOnly;
-                        res.Success = true;
-                        res.Address = addr;
-                        res.NormalizedInput = tag.Name;
-                        return res;
-                    }
-                }
-
-                res.Error = $"Tag adresi çözümlenemedi: {addressToResolve} - {err}";
-                return res;
+                // Address'i çözümle (operand veya sayısal adres olabilir)
+                return ResolveAddress(tag.Address, tag.Name, tag.ReadOnly);
             }
 
-            // 2) Sayı mı? (00002 gibi de olur)
-            if (int.TryParse(input, out var address1Based2))
-            {
-                if (_profile.TryResolveByModbusAddress(address1Based2, out var addr, out var err))
-                {
-                    res.Success = true;
-                    res.Address = addr;
-                    res.NormalizedInput = address1Based2.ToString();
-                    return res;
-                }
+            // 2) Tag değilse direkt adres/operand olarak çözümle
+            return ResolveAddress(input, input, false);
+        }
 
-                res.Error = err;
-                return res;
-            }
+        /// <summary>
+        /// Address string'ini ResolvedAddress'e çevirir
+        /// </summary>
+        private ResolveResult ResolveAddress(string addressStr, string normalizedInput, bool tagReadOnly)
+        {
+            var res = new ResolveResult { Success = false };
 
-            // 3) Operand mı? (MW10, MI5...)
-            if (_profile.TryResolveByOperand(input, out var opAddr, out var opErr))
+            // Önce operand olarak dene (MW0, IP1, MB5, vs)
+            if (_profile.TryResolveByOperand(addressStr, out var addr, out var err))
             {
+                addr.ReadOnly = addr.ReadOnly || tagReadOnly;
                 res.Success = true;
-                res.Address = opAddr;
-                res.NormalizedInput = input.ToUpperInvariant();
+                res.Address = addr;
+                res.NormalizedInput = normalizedInput;
                 return res;
             }
 
-            res.Error = "Çözümlenemedi (Tag/Adres/Operand değil): " + opErr;
+            // Operand değilse sayısal adres olarak dene (10002, 42019, vs)
+            if (int.TryParse(addressStr, out var address1Based))
+            {
+                if (_profile.TryResolveByModbusAddress(address1Based, out addr, out err))
+                {
+                    addr.ReadOnly = addr.ReadOnly || tagReadOnly;
+                    res.Success = true;
+                    res.Address = addr;
+                    res.NormalizedInput = normalizedInput;
+                    return res;
+                }
+            }
+
+            res.Error = $"Adres çözümlenemedi: '{addressStr}' - {err}";
             return res;
         }
     }

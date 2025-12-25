@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Jobs\JobRunner.cs" />
+    <Compile Include="Motor\MotorKalibrasyonService.cs" />
     <Compile Include="Plc\Addressing\AddressResolver.cs" />
     <Compile Include="Plc\Codec\ModbusCodec.cs" />
     <Compile Include="Plc\Service\ModbusService.cs" />

@@ -4,20 +4,24 @@ using KaynakMakinesi.Application.Plc.Codec;
 using KaynakMakinesi.Application.Plc.Service;
 using KaynakMakinesi.Application.Tags;
 using KaynakMakinesi.Core.Logging;
+using KaynakMakinesi.Core.Motor;
 using KaynakMakinesi.Core.Plc.Addressing;
 using KaynakMakinesi.Core.Plc.Codec;
 using KaynakMakinesi.Core.Plc.Profile;
 using KaynakMakinesi.Core.Settings;
+using KaynakMakinesi.Core.Repositories;
 using KaynakMakinesi.Core.Tags;
 using KaynakMakinesi.Infrastructure.Db;
 using KaynakMakinesi.Infrastructure.Jobs;
 using KaynakMakinesi.Infrastructure.Logging;
+using KaynakMakinesi.Infrastructure.Motor;
 using KaynakMakinesi.Infrastructure.Plc;
 using KaynakMakinesi.Infrastructure.Plc.Profile;
 using KaynakMakinesi.Infrastructure.Settings;
-using KaynakMakinesi.Infrastructure.Tags;
+using KaynakMakinesi.Infrastructure.Repositories;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -27,6 +31,9 @@ namespace KaynakMakinesi.UI
     static class Program
     {
         private static IAppLogger _logger = NullLogger.Instance; // Default olarak NullLogger
+        
+        // Global DI Container (basit)
+        public static IKalibrasyonService KalibrasyonService { get; private set; }
 
         [STAThread]
         static void Main()
@@ -79,8 +86,12 @@ namespace KaynakMakinesi.UI
 
                 var db = new SqliteDb(appFolder, settings.Database.FileName);
 
-                var tagRepo = new SqliteTagRepository(db);
-                tagRepo.EnsureSchema();
+                // YENİ: TagEntity Repository
+                var tagRepo = new SqliteTagEntityRepository(db);
+                
+                // Kalibrasyon repository ve service
+                var kalibrasyonRepo = new KalibrasyonRepository(db.DbPath);
+                KalibrasyonService = new MotorKalibrasyonService(kalibrasyonRepo);
 
                 IPlcProfile profile = new Gmt496Profile();
 
@@ -109,6 +120,9 @@ namespace KaynakMakinesi.UI
                 var modbusService = new ModbusService(plcClient, resolver, codec, settingsStore, logger);
 
                 ITagService tagService = new TagService(tagRepo, modbusService, logger);
+                
+                // Motor tag'lerini oluştur (eğer yoksa)
+                EnsureMotorTags(tagRepo, logger);
 
                 logger.Info("Program", $"Uygulama başlatıldı. Database: {db.DbPath}");
 
@@ -131,6 +145,43 @@ namespace KaynakMakinesi.UI
             {
                 _logger.Error("Program", "Başlatma sırasında kritik hata", ex);
                 MessageBox.Show($"Uygulama başlatılamadı:\n{ex.Message}", "Kritik Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        
+        /// <summary>
+        /// Motor tag'lerini kontrol eder ve yoksa oluşturur
+        /// NOT: Tag'ler artık hardcode edilmiyor!
+        /// Tag'leri Tag Manager'dan import edin (tag.json)
+        /// </summary>
+        private static void EnsureMotorTags(ITagEntityRepository tagRepo, IAppLogger logger)
+        {
+            try
+            {
+                // Motor tag'leri artık otomatik oluşturulmuyor
+                // Tag'ler SQLite veritabanında olmalı (Tag Manager ile import edilmeli)
+                
+                var allTags = tagRepo.GetAll();
+                logger.Info("Program", $"Veritabanında {allTags.Count()} adet tag bulundu");
+                
+                // Motor tag'lerini kontrol et
+                var motorGroups = new[] { "Motor_K0", "Motor_K1", "Motor_K2" };
+                
+                foreach (var group in motorGroups)
+                {
+                    var groupTags = allTags.Where(t => t.GroupName == group).ToList();
+                    if (groupTags.Count > 0)
+                    {
+                        logger.Info("Program", $"{group} grubu: {groupTags.Count} adet tag mevcut");
+                    }
+                    else
+                    {
+                        logger.Warn("Program", $"{group} grubu için tag bulunamadı! Tag Manager'dan import edin.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Program", "Tag kontrolü sırasında hata", ex);
             }
         }
     }

@@ -4,8 +4,8 @@ using DevExpress.XtraEditors;
 using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Model;
 using KaynakMakinesi.Core.Plc.Service;
-using KaynakMakinesi.Core.Tags;
-using KaynakMakinesi.Infrastructure.Tags;
+using KaynakMakinesi.Core.Entities;
+using KaynakMakinesi.Core.Repositories;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -20,19 +20,19 @@ namespace KaynakMakinesi.UI
 {
     public partial class FrmTagManager : RibbonForm
     {
-        private BindingList<TagRow> _rows = new BindingList<TagRow>();
-        private readonly SqliteTagRepository _tagRepo;
+        private BindingList<TagEntityRow> _rows = new BindingList<TagEntityRow>();
+        private readonly ITagEntityRepository _tagRepo;
         private readonly IModbusService _modbusService;
         private readonly IAppLogger _log;
 
         // snapshot for Undo
-        private List<TagRow> _snapshot = new List<TagRow>();
+        private List<TagEntityRow> _snapshot = new List<TagEntityRow>();
 
         // monitor
         private CancellationTokenSource _monitorCts;
         private Task _monitorTask;
 
-        public FrmTagManager(SqliteTagRepository tagRepo, IModbusService modbusService = null, IAppLogger log = null)
+        public FrmTagManager(ITagEntityRepository tagRepo, IModbusService modbusService = null, IAppLogger log = null)
         {
             InitializeComponent();
             _tagRepo = tagRepo;
@@ -59,25 +59,24 @@ namespace KaynakMakinesi.UI
 
         private void LoadFromDb()
         {
-            var list = _tagRepo.ListAll();
-
-            _rows.Clear();
-            foreach (var t in list)
+            try
             {
-                _rows.Add(new TagRow
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Address = t.Address,
-                    Type = t.TypeOverride,
-                    Group = t.GroupName,
-                    Description = t.Description,
-                    PollMs = t.PollMs,
-                    ReadOnly = t.ReadOnly
-                });
-            }
+                var entities = _tagRepo.GetAll();
 
-            SaveSnapshot();
+                _rows.Clear();
+                foreach (var entity in entities)
+                {
+                    _rows.Add(MapEntityToRow(entity));
+                }
+
+                SaveSnapshot();
+                _log?.Info(nameof(FrmTagManager), $"{_rows.Count} adet tag yüklendi");
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmTagManager), "Tag yükleme hatasý", ex);
+                XtraMessageBox.Show($"Tag yükleme hatasý:\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void SaveToDb()
@@ -92,34 +91,17 @@ namespace KaynakMakinesi.UI
                     throw new Exception("Tag Adý boþ olamaz.");
                 if (string.IsNullOrWhiteSpace(r.Address))
                     throw new Exception($"{r.Name} için Adres boþ olamaz.");
-                if (string.IsNullOrWhiteSpace(r.Type))
-                    r.Type = "UShort"; // default
+                if (string.IsNullOrWhiteSpace(r.DataType))
+                    r.DataType = "UShort"; // default
                 if (r.PollMs <= 0) r.PollMs = 250;
             }
 
-            var defs = _rows.Select(r =>
-            {
-                int address1Based = 0;
-                if (int.TryParse(r.Address.Trim(), out var numericAddress))
-                {
-                    address1Based = numericAddress;
-                }
-                
-                return new TagDefinition
-                {
-                    Name = r.Name.Trim(),
-                    Address = r.Address.Trim(),
-                    TypeOverride = r.Type.Trim(),
-                    GroupName = r.Group ?? "",
-                    Description = r.Description ?? "",
-                    PollMs = r.PollMs,
-                    ReadOnly = r.ReadOnly,
-                    Address1Based = address1Based
-                };
-            }).ToList();
+            var entities = _rows.Select(MapRowToEntity).ToList();
 
-            _tagRepo.UpsertMany(defs);
+            _tagRepo.UpsertMany(entities);
             SaveSnapshot();
+            
+            _log?.Info(nameof(FrmTagManager), $"{entities.Count} adet tag kaydedildi");
         }
 
         private void SetupGrid()
@@ -142,37 +124,50 @@ namespace KaynakMakinesi.UI
 
             gvTags.PopulateColumns();
 
-            gvTags.Columns[nameof(TagRow.Name)].Caption = "Tag Adý";
-            gvTags.Columns[nameof(TagRow.Address)].Caption = "Adres";
-            gvTags.Columns[nameof(TagRow.Type)].Caption = "Tip";
-            gvTags.Columns[nameof(TagRow.Group)].Caption = "Grup";
-            gvTags.Columns[nameof(TagRow.Description)].Caption = "Açýklama";
-            gvTags.Columns[nameof(TagRow.PollMs)].Caption = "Poll (ms)";
-            gvTags.Columns[nameof(TagRow.ReadOnly)].Caption = "RO";
-            gvTags.Columns[nameof(TagRow.LastValue)].Caption = "Son Deðer";
-            gvTags.Columns[nameof(TagRow.Status)].Caption = "Durum";
-            gvTags.Columns[nameof(TagRow.UpdatedAt)].Caption = "Güncellendi";
+            // Column captions - TagEntityRow property'lerine göre
+            gvTags.Columns[nameof(TagEntityRow.Name)].Caption = "Tag Adý";
+            gvTags.Columns[nameof(TagEntityRow.Address)].Caption = "Adres";
+            gvTags.Columns[nameof(TagEntityRow.DataType)].Caption = "Veri Tipi";
+            gvTags.Columns[nameof(TagEntityRow.GroupName)].Caption = "Grup";
+            gvTags.Columns[nameof(TagEntityRow.Description)].Caption = "Açýklama";
+            gvTags.Columns[nameof(TagEntityRow.PollMs)].Caption = "Poll (ms)";
+            gvTags.Columns[nameof(TagEntityRow.ReadOnly)].Caption = "RO";
+            gvTags.Columns[nameof(TagEntityRow.Scale)].Caption = "Scale";
+            gvTags.Columns[nameof(TagEntityRow.Offset)].Caption = "Offset";
+            gvTags.Columns[nameof(TagEntityRow.Unit)].Caption = "Birim";
+            gvTags.Columns[nameof(TagEntityRow.LastValue)].Caption = "Son Deðer";
+            gvTags.Columns[nameof(TagEntityRow.Status)].Caption = "Durum";
+            gvTags.Columns[nameof(TagEntityRow.UpdatedAt)].Caption = "Güncellendi";
 
-            gvTags.Columns[nameof(TagRow.LastValue)].OptionsColumn.AllowEdit = false;
-            gvTags.Columns[nameof(TagRow.Status)].OptionsColumn.AllowEdit = false;
-            gvTags.Columns[nameof(TagRow.UpdatedAt)].OptionsColumn.AllowEdit = false;
+            // Hide internal fields
+            gvTags.Columns[nameof(TagEntityRow.Id)].Visible = false;
+            gvTags.Columns[nameof(TagEntityRow.MetadataJson)].Visible = false;
+
+            // ReadOnly columns (monitor için)
+            gvTags.Columns[nameof(TagEntityRow.LastValue)].OptionsColumn.AllowEdit = false;
+            gvTags.Columns[nameof(TagEntityRow.Status)].OptionsColumn.AllowEdit = false;
+            gvTags.Columns[nameof(TagEntityRow.UpdatedAt)].OptionsColumn.AllowEdit = false;
         }
 
         private void SaveSnapshot()
         {
-            _snapshot = _rows.Select(r => new TagRow
+            _snapshot = _rows.Select(r => new TagEntityRow
             {
                 Id = r.Id,
                 Name = r.Name,
                 Address = r.Address,
-                Type = r.Type,
-                Group = r.Group,
+                DataType = r.DataType,
+                GroupName = r.GroupName,
                 Description = r.Description,
                 PollMs = r.PollMs,
                 ReadOnly = r.ReadOnly,
+                Scale = r.Scale,
+                Offset = r.Offset,
+                Unit = r.Unit,
                 LastValue = r.LastValue,
                 Status = r.Status,
-                UpdatedAt = r.UpdatedAt
+                UpdatedAt = r.UpdatedAt,
+                MetadataJson = r.MetadataJson
             }).ToList();
         }
 
@@ -182,6 +177,58 @@ namespace KaynakMakinesi.UI
             foreach (var r in _snapshot)
                 _rows.Add(r);
         }
+        
+        #region Entity <-> Row Mapping
+        
+        /// <summary>
+        /// TagEntity -> TagEntityRow (UI row)
+        /// </summary>
+        private TagEntityRow MapEntityToRow(TagEntity entity)
+        {
+            return new TagEntityRow
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Address = entity.Address,
+                DataType = entity.DataType,
+                GroupName = entity.GroupName,
+                Description = entity.Description,
+                PollMs = entity.PollMs,
+                ReadOnly = entity.ReadOnly,
+                Scale = entity.Scale,
+                Offset = entity.Offset,
+                Unit = entity.Unit,
+                MetadataJson = entity.MetadataJson
+            };
+        }
+        
+        /// <summary>
+        /// TagEntityRow (UI row) -> TagEntity
+        /// </summary>
+        private TagEntity MapRowToEntity(TagEntityRow row)
+        {
+            var entity = new TagEntity
+            {
+                Id = row.Id,
+                Name = row.Name?.Trim(),
+                Address = row.Address?.Trim(),
+                DataType = row.DataType?.Trim() ?? "UShort",
+                GroupName = row.GroupName?.Trim() ?? "",
+                MetadataJson = row.MetadataJson
+            };
+            
+            // Convenience property'leri metadata'ya yaz
+            entity.Description = row.Description ?? "";
+            entity.PollMs = row.PollMs <= 0 ? 250 : row.PollMs;
+            entity.ReadOnly = row.ReadOnly;
+            entity.Scale = row.Scale;
+            entity.Offset = row.Offset;
+            entity.Unit = row.Unit ?? "";
+            
+            return entity;
+        }
+        
+        #endregion
 
         // --- Ribbon handlers ---
         private void BtnImportExcel_ItemClick(object sender, ItemClickEventArgs e)
@@ -292,7 +339,7 @@ namespace KaynakMakinesi.UI
                     var idxPoll = FindColumnIndex(header, "PollMs", "Poll (ms)");
                     var idxRo = FindColumnIndex(header, "ReadOnly");
 
-                    var imported = new List<TagRow>();
+                    var imported = new List<TagEntityRow>();
                     int skippedCount = 0;
                     
                     for (int i = headerIndex + 1; i < lines.Length; i++)
@@ -430,12 +477,12 @@ namespace KaynakMakinesi.UI
                             ro = roStr.Trim() == "1" || roStr.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
                         }
 
-                        imported.Add(new TagRow
+                        imported.Add(new TagEntityRow
                         {
                             Name = name,
                             Address = modbusAddress,
-                            Type = type,
-                            Group = group ?? "",
+                            DataType = type,
+                            GroupName = group ?? "",
                             Description = desc ?? "",
                             PollMs = poll <= 0 ? 250 : poll,
                             ReadOnly = ro
@@ -551,10 +598,16 @@ namespace KaynakMakinesi.UI
 
         private void BtnNewTag_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var newItem = new TagRow { Name = "<< Yeni Tag >>", Address = "0", Type = "UShort", PollMs = 250 };
+            var newItem = new TagEntityRow 
+            { 
+                Name = "<< Yeni Tag >>", 
+                Address = "0", 
+                DataType = "UShort", 
+                PollMs = 250 
+            };
             _rows.Insert(0, newItem);
             gvTags.FocusedRowHandle = 0;
-            gvTags.FocusedColumn = gvTags.Columns[nameof(TagRow.Name)];
+            gvTags.FocusedColumn = gvTags.Columns[nameof(TagEntityRow.Name)];
             gvTags.ShowEditor();
         }
 
@@ -567,16 +620,32 @@ namespace KaynakMakinesi.UI
             }
 
             var sels = gvTags.GetSelectedRows();
+            if (sels.Length == 0)
+            {
+                XtraMessageBox.Show("Lütfen okumak için en az bir tag seçin.", "Uyarý");
+                return;
+            }
+            
+            _log?.Info(nameof(FrmTagManager), $"Tag okuma baþlatýldý. Seçili tag sayýsý: {sels.Length}");
+            
+            int successCount = 0;
+            int errorCount = 0;
+            
             foreach (var r in sels)
             {
-                var row = gvTags.GetRow(r) as TagRow;
+                var row = gvTags.GetRow(r) as TagEntityRow;
                 if (row == null) continue;
 
                 try
                 {
+                    _log?.Debug(nameof(FrmTagManager), $"Tag okunuyor: {row.Name} -> Address: {row.Address}, Type: {row.DataType}");
+                    
                     var res = await _modbusService.ReadAutoAsync(row.Address, CancellationToken.None).ConfigureAwait(false);
                     if (res.Success)
                     {
+                        successCount++;
+                        _log?.Debug(nameof(FrmTagManager), $"? {row.Name} = {res.Value}");
+                        
                         BeginInvoke((Action)(() =>
                         {
                             row.LastValue = res.Value?.ToString();
@@ -587,6 +656,9 @@ namespace KaynakMakinesi.UI
                     }
                     else
                     {
+                        errorCount++;
+                        _log?.Error(nameof(FrmTagManager), $"? {row.Name} okuma hatasý: {res.Error}");
+                        
                         BeginInvoke((Action)(() =>
                         {
                             row.Status = "Hata: " + res.Error;
@@ -597,15 +669,24 @@ namespace KaynakMakinesi.UI
                 }
                 catch (Exception ex)
                 {
-                    try { _log?.Error(nameof(FrmTagManager), "Seçilen hatayý oku", ex); } catch { }
+                    errorCount++;
+                    _log?.Error(nameof(FrmTagManager), $"? {row.Name} exception", ex);
+                    
                     BeginInvoke((Action)(() =>
                     {
-                        row.Status = "Hata";
+                        row.Status = "Exception: " + ex.Message;
                         row.UpdatedAt = DateTime.Now;
                         gvTags.RefreshRow(gvTags.GetRowHandle(r));
                     }));
                 }
             }
+            
+            _log?.Info(nameof(FrmTagManager), $"Tag okuma tamamlandý. Baþarýlý: {successCount}, Hatalý: {errorCount}");
+            
+            BeginInvoke((Action)(() =>
+            {
+                XtraMessageBox.Show($"Okuma tamamlandý.\n\nBaþarýlý: {successCount}\nHatalý: {errorCount}", "Bilgi");
+            }));
         }
 
         private async void BtnWriteSelected_ItemClick(object sender, ItemClickEventArgs e)
@@ -621,11 +702,26 @@ namespace KaynakMakinesi.UI
                 var sels = gvTags.GetSelectedRows();
                 if (sels == null || sels.Length == 0)
                 {
-                    XtraMessageBox.Show("Lütfen tek bir satýr seçin.", "Uyarý");
+                    XtraMessageBox.Show("Lütfen yazmak için tek bir satýr seçin.", "Uyarý");
                     return;
                 }
-                var row = gvTags.GetRow(sels[0]) as TagRow;
+                
+                if (sels.Length > 1)
+                {
+                    XtraMessageBox.Show("Tek seferde sadece bir tag'e yazabilirsiniz.", "Uyarý");
+                    return;
+                }
+                
+                var row = gvTags.GetRow(sels[0]) as TagEntityRow;
                 if (row == null) return;
+
+                if (row.ReadOnly)
+                {
+                    XtraMessageBox.Show($"{row.Name} tag'i ReadOnly!\nYazma iþlemi yapýlamaz.", "Uyarý");
+                    return;
+                }
+
+                _log?.Info(nameof(FrmTagManager), $"Tag yazma baþlatýldý: {row.Name} -> Address: {row.Address}, Type: {row.DataType}");
 
                 decimal value;
                 var initial = 0m;
@@ -633,19 +729,36 @@ namespace KaynakMakinesi.UI
                 if (!KaynakMakinesi.UI.Controls.FrmTouchCalculator.TryPrompt(this, $"{row.Name} deðer yaz", initial, out value))
                     return;
 
+                _log?.Debug(nameof(FrmTagManager), $"Yazýlacak deðer: {value}");
+
                 var text = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var ok = await _modbusService.WriteTextAsync(row.Address, text, CancellationToken.None).ConfigureAwait(false);
+                
+                if (ok)
+                {
+                    _log?.Info(nameof(FrmTagManager), $"? {row.Name} = {text} yazýldý");
+                }
+                else
+                {
+                    _log?.Error(nameof(FrmTagManager), $"? {row.Name} yazma baþarýsýz!");
+                }
+                
                 BeginInvoke((Action)(() =>
                 {
                     row.Status = ok ? "Yazma OK" : "Yazma baþarýsýz";
                     row.UpdatedAt = DateTime.Now;
                     if (ok) row.LastValue = text;
                     gvTags.RefreshData();
+                    
+                    XtraMessageBox.Show(ok ? "Yazma baþarýlý!" : "Yazma BAÞARISIZ!\nLoglara bakýn.", 
+                        ok ? "Bilgi" : "Hata",
+                        MessageBoxButtons.OK,
+                        ok ? MessageBoxIcon.Information : MessageBoxIcon.Error);
                 }));
             }
             catch (Exception ex)
             {
-                try { _log?.Error(nameof(FrmTagManager), "WriteSelected hata", ex); } catch { }
+                _log?.Error(nameof(FrmTagManager), "WriteSelected exception", ex);
                 XtraMessageBox.Show("Yazma sýrasýnda hata: " + ex.Message, "Hata");
             }
         }
@@ -862,7 +975,23 @@ namespace KaynakMakinesi.UI
             try
             {
                 SaveToDb();
-                XtraMessageBox.Show("Kaydedildi.", "Tamam");
+                
+                // ÖNEMLÝ: AddressResolver'ýn cache'ini yenile!
+                // Tag'ler kaydedildikten sonra AddressResolver'a yeni tag'leri yüklemesi gerektiðini söyle
+                try
+                {
+                    // IAddressResolver'a eriþmek için dependency injection gerekiyor
+                    // Ama þu anki yapýda eriþemiyoruz, bu yüzden geçici çözüm:
+                    // Uygulama yeniden baþlatýlmalý veya AddressResolver.ReloadTags() çaðrýlmalý
+                    
+                    _log?.Info(nameof(FrmTagManager), "Tag'ler kaydedildi. AddressResolver cache'i yenilenmelidir.");
+                }
+                catch (Exception ex)
+                {
+                    _log?.Error(nameof(FrmTagManager), "AddressResolver cache yenileme uyarýsý", ex);
+                }
+
+                XtraMessageBox.Show("Kaydedildi.\n\n?? ÖNEMLÝ: Tag deðiþiklikleri için uygulamayý yeniden baþlatýn!", "Tamam", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadFromDb();
             }
             catch (Exception ex)
@@ -873,13 +1002,13 @@ namespace KaynakMakinesi.UI
 
         private void btnDeleteTag_ItemClick(object sender, ItemClickEventArgs e)
         {
-            var row = gvTags.GetFocusedRow() as TagRow;
+            var row = gvTags.GetFocusedRow() as TagEntityRow;
             if (row == null) return;
 
             if (XtraMessageBox.Show($"{row.Name} silinsin mi?", "Onay", MessageBoxButtons.YesNo) != DialogResult.Yes)
                 return;
 
-            _tagRepo.DeleteByName(row.Name);
+            _tagRepo.RemoveByName(row.Name);
             _rows.Remove(row);
         }
 
@@ -898,10 +1027,10 @@ namespace KaynakMakinesi.UI
                 }
 
                 // Seçili tag'leri listele
-                var tagsToDelete = new List<TagRow>();
+                var tagsToDelete = new List<TagEntityRow>();
                 foreach (var rowHandle in selectedRows)
                 {
-                    var row = gvTags.GetRow(rowHandle) as TagRow;
+                    var row = gvTags.GetRow(rowHandle) as TagEntityRow;
                     if (row != null)
                         tagsToDelete.Add(row);
                 }
@@ -923,18 +1052,13 @@ namespace KaynakMakinesi.UI
 
                 // Database'den sil
                 int deletedCount = 0;
+                var namesToDelete = tagsToDelete.Select(t => t.Name).ToList();
+                _tagRepo.RemoveByNames(namesToDelete);
+                
                 foreach (var tag in tagsToDelete)
                 {
-                    try
-                    {
-                        _tagRepo.DeleteByName(tag.Name);
-                        _rows.Remove(tag);
-                        deletedCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        _log?.Error(nameof(FrmTagManager), $"Tag silme hatasý: {tag.Name}", ex);
-                    }
+                    _rows.Remove(tag);
+                    deletedCount++;
                 }
 
                 gvTags.RefreshData();
@@ -987,18 +1111,9 @@ namespace KaynakMakinesi.UI
                 var allTags = _rows.ToList();
                 int deletedCount = 0;
                 
-                foreach (var tag in allTags)
-                {
-                    try
-                    {
-                        _tagRepo.DeleteByName(tag.Name);
-                        deletedCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        _log?.Error(nameof(FrmTagManager), $"Tag silme hatasý: {tag.Name}", ex);
-                    }
-                }
+                var namesToDelete = allTags.Select(t => t.Name).ToList();
+                _tagRepo.RemoveByNames(namesToDelete);
+                deletedCount = allTags.Count;
 
                 _rows.Clear();
                 gvTags.RefreshData();
@@ -1006,7 +1121,7 @@ namespace KaynakMakinesi.UI
 
                 XtraMessageBox.Show($"{deletedCount} adet tag silindi.", "Tamamlandý", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 
-                _log?.Warn(nameof(FrmTagManager), $"TÜM TAG'LER SÝLÝNDÝ! Toplam: {deletedCount}");
+                _log?.Error(nameof(FrmTagManager), $"TÜM TAG'LER SÝLÝNDÝ! Toplam: {deletedCount}");
             }
             catch (Exception ex)
             {

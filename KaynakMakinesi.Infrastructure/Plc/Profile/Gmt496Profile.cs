@@ -28,7 +28,7 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
         {
             new ProfileRule
             { 
-                From1Based = 40000, 
+                From1Based = 40001,  // MW0 = 40001
                 To1Based = 49999, 
                 Area = ModbusArea.HoldingRegister, 
                 Type = ValueType.UShort, 
@@ -38,7 +38,7 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
             },
             new ProfileRule
             { 
-                From1Based = 1,  // ÖNEMLİ: Coil adresleri 1-based (1-9999)
+                From1Based = 1,  // MB0 = 1 (Coil adresleri 1-based)
                 To1Based = 9999, 
                 Area = ModbusArea.Coil, 
                 Type = ValueType.Bool, 
@@ -48,7 +48,7 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
             },
             new ProfileRule
             { 
-                From1Based = 10000, 
+                From1Based = 10001,  // IP0 = 10001 (Discrete Input 1-based)
                 To1Based = 19999, 
                 Area = ModbusArea.DiscreteInput, 
                 Type = ValueType.Bool, 
@@ -58,7 +58,7 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
             },
             new ProfileRule
             { 
-                From1Based = 30000, 
+                From1Based = 30001,  // IW0 = 30001 (Input Register 1-based)
                 To1Based = 39999, 
                 Area = ModbusArea.InputRegister, 
                 Type = ValueType.UShort, 
@@ -73,16 +73,14 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
         public int GetHumanBase1Based(ModbusArea area)
         {
             // Modbus standartlarına göre base adresler (1-based human readable)
-            // Holding Register: 40001-49999 aralığı (40000 base + 1-based offset)
-            // Discrete Input: 10001-19999 aralığı (10000 base + 1-based offset)
-            // Input Register: 30001-39999 aralığı (30000 base + 1-based offset)
-            // Coil: 1-9999 aralığı (1 base + 0-based offset, ama 1-based gösterilir)
+            // DİKKAT: GMT PLC operand adresleri 1'den başlar!
+            // MW0 = 40001, IP0 = 10001, IW0 = 30001, MB0 = 1
             switch (area)
             {
-                case ModbusArea.Coil: return 1;  // Coil adresleri 1'den başlar (1-based)
-                case ModbusArea.DiscreteInput: return 10000;
-                case ModbusArea.InputRegister: return 30000;
-                case ModbusArea.HoldingRegister: return 40000;
+                case ModbusArea.Coil: return 1;  // Coil adresleri 1'den başlar
+                case ModbusArea.DiscreteInput: return 10001;  // IP0 = 10001
+                case ModbusArea.InputRegister: return 30001;  // IW0 = 30001
+                case ModbusArea.HoldingRegister: return 40001;  // MW0 = 40001
                 default: return 0;
             }
         }
@@ -169,10 +167,10 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
             switch (prefix)
             {
                 case "MW":
-                    address1Based = 40000 + idx;  // MW0 -> 40000
+                    address1Based = 40001 + idx;  // MW0 -> 40001 (1-based Modbus)
                     break;
                 case "MI":
-                    address1Based = 42000 + (idx * 2);  // MI0 -> 42000, MI1 -> 42002
+                    address1Based = 42001 + (idx * 2);  // MI0 -> 42001, MI1 -> 42003
                     break;
                 case "MF":
                     var floatAddresses = new[] { 42017, 42019, 42025, 42027, 42029 };
@@ -187,19 +185,19 @@ namespace KaynakMakinesi.Infrastructure.Plc.Profile
                     }
                     break;
                 case "MB":
-                    // MB0 -> Coil 1 (çünkü Coil adresleri 1-based)
-                    // MB1 -> Coil 2
+                    // MB0 -> Coil 1 (1-based Modbus)
                     address1Based = 1 + idx;  // MB0 -> 1, MB1 -> 2
                     break;
                 case "IP":
-                    address1Based = 10000 + idx;  // IP0 -> 10000
+                    // DÜZELTİLDİ: IP0 = 10001 (PLC dokümantasyonuna göre)
+                    address1Based = 10001 + idx;  // IP0 -> 10001, IP1 -> 10002
                     break;
                 case "QP":
                     // QP (Output Coils) de 1-based
                     address1Based = 1 + idx;  // QP0 -> 1, QP1 -> 2
                     break;
                 case "IW":
-                    address1Based = 30000 + idx;  // IW0 -> 30000
+                    address1Based = 30001 + idx;  // IW0 -> 30001
                     break;
                 default:
                     error = $"Bilinmeyen prefix: {prefix}. Geçerli: MW, MI, MF, MB, IP, QP, IW";

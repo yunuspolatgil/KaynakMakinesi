@@ -160,23 +160,22 @@ namespace KaynakMakinesi.UI
             // 
             this.btnAddressTest.Caption = "Adres Test";
             this.btnAddressTest.Id = 15;
-            this.btnAddressTest.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnTagYonetim.ImageOptions.SvgImage")));
+            this.btnAddressTest.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnAddressTest.ImageOptions.SvgImage")));
             this.btnAddressTest.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
             this.btnAddressTest.ItemAppearance.Normal.Options.UseFont = true;
             this.btnAddressTest.LargeWidth = 90;
             this.btnAddressTest.Name = "btnAddressTest";
-            
+            this.btnAddressTest.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.btnAddressTest_ItemClick);
             // 
             // btnRealPlcTest
             // 
             this.btnRealPlcTest.Caption = "PLC Test";
             this.btnRealPlcTest.Id = 16;
-            this.btnRealPlcTest.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("barButtonItem1.ImageOptions.SvgImage")));
+            this.btnRealPlcTest.ImageOptions.SvgImage = ((DevExpress.Utils.Svg.SvgImage)(resources.GetObject("btnRealPlcTest.ImageOptions.SvgImage")));
             this.btnRealPlcTest.ItemAppearance.Normal.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
             this.btnRealPlcTest.ItemAppearance.Normal.Options.UseFont = true;
             this.btnRealPlcTest.LargeWidth = 90;
             this.btnRealPlcTest.Name = "btnRealPlcTest";
-            
             // 
             // barStaticItem1
             // 

@@ -1,12 +1,13 @@
 ﻿using DevExpress.XtraBars;
 using KaynakMakinesi.Core.Abstractions;
 using KaynakMakinesi.Core.Logging;
+using KaynakMakinesi.Core.Motor;
 using KaynakMakinesi.Core.Plc;
 using KaynakMakinesi.Core.Plc.Service;
 using KaynakMakinesi.Core.Settings;
 using KaynakMakinesi.Core.Tags;
+using KaynakMakinesi.Core.Repositories;
 using KaynakMakinesi.Infrastructure.Logging;
-using KaynakMakinesi.Infrastructure.Tags;
 using KaynakMakinesi.UI.Utils;
 using System;
 using ConnectionState = KaynakMakinesi.Core.Plc.ConnectionState;
@@ -18,7 +19,7 @@ namespace KaynakMakinesi.UI
         private readonly ISettingsStore<AppSettings> _settingsStore;
         private readonly InMemoryLogSink _logSink;
         private readonly IConnectionSupervisor _conn;
-        private readonly SqliteTagRepository _tagRepo;
+        private readonly ITagEntityRepository _tagRepo;
         private readonly IAppLogger _log;
         private readonly IModbusService _modbusService;
         private readonly ITagService _tagService;
@@ -30,7 +31,7 @@ namespace KaynakMakinesi.UI
             IConnectionSupervisor conn,
             IAppLogger log,
             IModbusService modbusService,
-            SqliteTagRepository tagRepo,
+            ITagEntityRepository tagRepo,
             ITagService tagService)
         {
             InitializeComponent();
@@ -118,8 +119,31 @@ namespace KaynakMakinesi.UI
 
         private void btnSagTorcKalibrasyon_ItemClick(object sender, ItemClickEventArgs e)
         {
-            FrmTorcSag frmTorcSag = new FrmTorcSag(_modbusService, _log, _tagService);
-            frmTorcSag.ShowDialog();
+            try
+            {
+                using (var frm = new Forms.K0KalibrasyonForm(
+                    _modbusService, 
+                    _tagService, 
+                    _log, 
+                    Program.KalibrasyonService))
+                {
+                    frm.ShowDialog(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmAnaForm), "K0 Kalibrasyon formu açma hatası", ex);
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"Form açılamadı:\n{ex.Message}", 
+                    "Hata", 
+                    System.Windows.Forms.MessageBoxButtons.OK, 
+                    System.Windows.Forms.MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnAddressTest_ItemClick(object sender, ItemClickEventArgs e)
+        {
+          
         }
     }
 }
