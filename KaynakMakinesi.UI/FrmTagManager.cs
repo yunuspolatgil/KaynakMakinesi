@@ -147,6 +147,14 @@ namespace KaynakMakinesi.UI
             gvTags.Columns[nameof(TagEntityRow.LastValue)].OptionsColumn.AllowEdit = false;
             gvTags.Columns[nameof(TagEntityRow.Status)].OptionsColumn.AllowEdit = false;
             gvTags.Columns[nameof(TagEntityRow.UpdatedAt)].OptionsColumn.AllowEdit = false;
+            
+            // ?? DataType sütununa dropdown (ComboBox) ekle
+            var dataTypeColumn = gvTags.Columns[nameof(TagEntityRow.DataType)];
+            var comboBoxEdit = new DevExpress.XtraEditors.Repository.RepositoryItemComboBox();
+            comboBoxEdit.Items.AddRange(new object[] { "Bool", "UShort", "Int32", "Float" });
+            comboBoxEdit.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor; // Sadece dropdown'dan seçim
+            gcTags.RepositoryItems.Add(comboBoxEdit);
+            dataTypeColumn.ColumnEdit = comboBoxEdit;
         }
 
         private void SaveSnapshot()
@@ -465,7 +473,19 @@ namespace KaynakMakinesi.UI
                         var group = GetValue(parts, idxGroup)?.Trim('"', ' ');
                         var desc = GetValue(parts, idxDesc)?.Trim('"', ' ');
                         
+                        // ?? YENÝ: Eðer grup boþsa, tag isminden otomatik belirle
+                        if (string.IsNullOrWhiteSpace(group))
+                        {
+                            group = AutoDetectGroupFromTagName(name);
+                            
+                            if (!string.IsNullOrWhiteSpace(group))
+                            {
+                                _log?.Debug(nameof(FrmTagManager), $"Satýr {i}: Grup otomatik atandý: '{name}' -> Grup: '{group}'");
+                            }
+                        }
+                        
                         int poll = 250;
+
                         var pollStr = GetValue(parts, idxPoll);
                         if (!string.IsNullOrWhiteSpace(pollStr))
                             int.TryParse(pollStr, out poll);
@@ -487,7 +507,7 @@ namespace KaynakMakinesi.UI
                             PollMs = poll <= 0 ? 250 : poll,
                             ReadOnly = ro
                         });
-                        
+
                         if (imported.Count <= 3)
                             _log?.Debug(nameof(FrmTagManager), $"  Tag eklendi: {name} -> {modbusAddress} ({type})");
                     }
@@ -867,11 +887,40 @@ namespace KaynakMakinesi.UI
         {
             try
             {
-                SaveToDb();
+                // ?? FÝX: Her satýr deðiþikliðinde tüm DB'yi kaydetme!
+                // Sadece deðiþtirilen satýrý kaydet
+                var row = e.Row as TagEntityRow;
+                if (row == null) return;
+                
+                // Validasyon
+                if (string.IsNullOrWhiteSpace(row.Name))
+                {
+                    XtraMessageBox.Show("Tag Adý boþ olamaz.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                
+                if (string.IsNullOrWhiteSpace(row.Address))
+                {
+                    XtraMessageBox.Show($"{row.Name} için Adres boþ olamaz.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                
+                if (string.IsNullOrWhiteSpace(row.DataType))
+                    row.DataType = "UShort";
+                
+                if (row.PollMs <= 0) 
+                    row.PollMs = 250;
+                
+                // Tek tag'i DB'ye kaydet (Upsert)
+                var entity = MapRowToEntity(row);
+                _tagRepo.UpsertMany(new[] { entity });
+                
+                _log?.Debug(nameof(FrmTagManager), $"Tag güncellendi: {row.Name}");
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show("Kaydetme sýrasýnda hata:\n" + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _log?.Error(nameof(FrmTagManager), "Satýr güncelleme hatasý", ex);
+                XtraMessageBox.Show($"Kaydetme sýrasýnda hata:\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -969,34 +1018,96 @@ namespace KaynakMakinesi.UI
                     return "UShort";
             }
         }
+        
+        /// <summary>
+        /// ?? Tag isminden otomatik grup belirler
+        /// Örnek: "K0_Home_Hiz" -> "Motor_K0"
+        ///        "K1_Ileri_Hiz" -> "Motor_K1"
+        ///        "Temp_Sensor" -> "" (tanýmsýz)
+        /// </summary>
+        private string AutoDetectGroupFromTagName(string tagName)
+        {
+            if (string.IsNullOrWhiteSpace(tagName))
+                return "";
+            
+            // Tag adýný büyük harfe çevir (case-insensitive)
+            var upperName = tagName.ToUpperInvariant();
+            
+            // Motor prefix'lerini kontrol et (K0_, K1_, K2_, vb.)
+            var motorPrefixes = new[] { "K0_", "K1_", "K2_", "K3_", "K4_", "K5_", "K6_", "K7_", "K8_", "K9_" };
+            
+            foreach (var prefix in motorPrefixes)
+            {
+                if (upperName.StartsWith(prefix))
+                {
+                    // Prefix'ten motor numarasýný al (K0 -> Motor_K0)
+                    var motorNum = prefix.TrimEnd('_'); // "K0_" -> "K0"
+                    return "Motor_" + motorNum; // "Motor_K0"
+                }
+            }
+            
+            // Sistem tag'leri için özel gruplar
+            if (upperName.StartsWith("SYS_") || upperName.StartsWith("SYSTEM_"))
+                return "System";
+            
+            if (upperName.StartsWith("ALARM_") || upperName.StartsWith("WARN_"))
+                return "Alarms";
+            
+            if (upperName.StartsWith("TEMP_") || upperName.StartsWith("SENSOR_"))
+                return "Sensors";
+            
+            // Grup bulunamadý
+            return "";
+        }
 
         private void btnSaveChanges_ItemClick(object sender, ItemClickEventArgs e)
         {
             try
             {
-                SaveToDb();
+                // ?? FÝX: Tüm satýrlarý kaydet (elle deðiþtirilenler + yeniler)
+                gvTags.CloseEditor();
+                gvTags.UpdateCurrentRow();
                 
-                // ÖNEMLÝ: AddressResolver'ýn cache'ini yenile!
-                // Tag'ler kaydedildikten sonra AddressResolver'a yeni tag'leri yüklemesi gerektiðini söyle
-                try
+                // Validasyon - tüm satýrlar için
+                foreach (var r in _rows)
                 {
-                    // IAddressResolver'a eriþmek için dependency injection gerekiyor
-                    // Ama þu anki yapýda eriþemiyoruz, bu yüzden geçici çözüm:
-                    // Uygulama yeniden baþlatýlmalý veya AddressResolver.ReloadTags() çaðrýlmalý
-                    
-                    _log?.Info(nameof(FrmTagManager), "Tag'ler kaydedildi. AddressResolver cache'i yenilenmelidir.");
+                    if (string.IsNullOrWhiteSpace(r.Name))
+                    {
+                        XtraMessageBox.Show("Tag Adý boþ olamaz.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    if (string.IsNullOrWhiteSpace(r.Address))
+                    {
+                        XtraMessageBox.Show($"{r.Name} için Adres boþ olamaz.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    if (string.IsNullOrWhiteSpace(r.DataType))
+                        r.DataType = "UShort";
+                    if (r.PollMs <= 0) 
+                        r.PollMs = 250;
                 }
-                catch (Exception ex)
-                {
-                    _log?.Error(nameof(FrmTagManager), "AddressResolver cache yenileme uyarýsý", ex);
-                }
+                
+                // Tüm tag'leri DB'ye kaydet (Upsert - var olanlar güncelle, yeniler ekle)
+                var entities = _rows.Select(MapRowToEntity).ToList();
+                _tagRepo.UpsertMany(entities);
+                
+                SaveSnapshot(); // Undo için snapshot kaydet
+                
+                _log?.Info(nameof(FrmTagManager), $"{entities.Count} adet tag kaydedildi");
 
-                XtraMessageBox.Show("Kaydedildi.\n\n?? ÖNEMLÝ: Tag deðiþiklikleri için uygulamayý yeniden baþlatýn!", "Tamam", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadFromDb();
+                XtraMessageBox.Show(
+                    $"? {entities.Count} adet tag baþarýyla kaydedildi!\n\n" +
+                    "?? ÖNEMLÝ: Tag deðiþikliklerinin etkin olmasý için uygulamayý yeniden baþlatýn.", 
+                    "Kayýt Baþarýlý", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Information);
+                
+                LoadFromDb(); // DB'den tekrar yükle
             }
             catch (Exception ex)
             {
-                XtraMessageBox.Show(ex.Message, "Hata");
+                _log?.Error(nameof(FrmTagManager), "Toplu kaydetme hatasý", ex);
+                XtraMessageBox.Show($"Kaydetme sýrasýnda hata:\n{ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -1088,8 +1199,8 @@ namespace KaynakMakinesi.UI
                     return;
                 }
 
-                var confirmMsg = $"DÝKKAT! TÜM TAG'LER SÝLÝNECEK!\n\n" +
-                                $"Toplam {_rows.Count} adet tag kalýcý olarak silinecek.\n\n" +
+                var confirmMsg = $"?? DÝKKAT! TÜM TAG'LER SÝLÝNECEK!\n\n" +
+                                $"Toplam {_rows.Count} adet tag kalýcý olarak VERÝTABANINDAN silinecek.\n\n" +
                                 $"Bu iþlem GERÝ ALINAMAZ!\n\n" +
                                 $"Devam etmek istediðinize emin misiniz?";
 
@@ -1097,31 +1208,58 @@ namespace KaynakMakinesi.UI
                 if (result != DialogResult.Yes)
                     return;
 
-                // Çift onay
+                // Ýkinci onay (daha agresif)
                 var doubleCheck = XtraMessageBox.Show(
-                    $"Son onay: {_rows.Count} adet tag SÝLÝNSÝN MÝ?", 
-                    "Son Onay", 
+                    $"?? SON ONAY: {_rows.Count} adet tag VERÝTABANINDAN SÝLINSÝN MÝ?\n\n" +
+                    $"Bu iþlem geri alýnamaz!\n\n" +
+                    $"Emin misiniz?", 
+                    "Son Onay - VERÝTABANINDAN SÝL", 
                     MessageBoxButtons.YesNo, 
                     MessageBoxIcon.Stop);
                 
                 if (doubleCheck != DialogResult.Yes)
+                {
+                    XtraMessageBox.Show("Ýþlem iptal edildi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
+                }
 
-                // Tüm tag'leri sil
+                // ?? FÝX: Tüm tag'leri DB'DEN SÝL (Soft delete deðil, permanent delete!)
                 var allTags = _rows.ToList();
                 int deletedCount = 0;
                 
-                var namesToDelete = allTags.Select(t => t.Name).ToList();
-                _tagRepo.RemoveByNames(namesToDelete);
-                deletedCount = allTags.Count;
+                // Database'den permanent silme (RemoveByNames soft delete yapýyor, o yüzden teker teker permanent delete)
+                foreach (var tag in allTags)
+                {
+                    try
+                    {
+                        // Önce DB'den entity'i al
+                        var entity = _tagRepo.GetByName(tag.Name);
+                        if (entity != null)
+                        {
+                            // Permanent sil (soft delete deðil!)
+                            _tagRepo.RemovePermanently(entity);
+                            deletedCount++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _log?.Error(nameof(FrmTagManager), $"Tag silme hatasý: {tag.Name}", ex);
+                    }
+                }
 
+                // UI'dan temizle
                 _rows.Clear();
                 gvTags.RefreshData();
                 SaveSnapshot();
 
-                XtraMessageBox.Show($"{deletedCount} adet tag silindi.", "Tamamlandý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                XtraMessageBox.Show(
+                    $"? {deletedCount} adet tag VERÝTABANINDAN silindi!\n\n" +
+                    $"Tag'ler kalýcý olarak kaldýrýldý.", 
+                    "Silme Tamamlandý", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Information);
                 
-                _log?.Error(nameof(FrmTagManager), $"TÜM TAG'LER SÝLÝNDÝ! Toplam: {deletedCount}");
+                _log?.Warn(nameof(FrmTagManager), $"?? TÜM TAG'LER VERÝTABANINDAN SÝLÝNDÝ! Toplam: {deletedCount}");
             }
             catch (Exception ex)
             {

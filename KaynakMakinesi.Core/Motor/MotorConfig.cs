@@ -25,8 +25,16 @@ namespace KaynakMakinesi.Core.Motor
         
         /// <summary>
         /// Tag prefix (K0_, K1_, vb.)
+        /// DEPRECATED: Artýk kullanýlmýyor, GroupName kullanýlýyor
         /// </summary>
+        [Obsolete("Artýk kullanýlmýyor. GroupName kullanýn.")]
         public string Prefix => MotorName + "_";
+        
+        /// <summary>
+        /// ?? Tag grubu (Motor_K0, Motor_K1, vb.)
+        /// Tag Manager'da bu gruptan tag'ler aranýr
+        /// </summary>
+        public string GroupName => "Motor_" + MotorName;
         
         // ===== POZÝSYON LÝMÝTLERÝ =====
         public float MinPozisyon { get; set; } = -1000f;
@@ -47,8 +55,9 @@ namespace KaynakMakinesi.Core.Motor
         
         /// <summary>
         /// Tag adýndan tam tag adý oluþturur
-        /// Örnek: "Home_Switch" -> "K0_Home_Switch"
+        /// DEPRECATED: Artýk kullanýlmýyor. DB'den GetByGroupAndSuffix kullanýn.
         /// </summary>
+        [Obsolete("Artýk kullanýlmýyor. TagRepository.GetByGroupAndSuffix(GroupName, suffix) kullanýn.")]
         public string GetTagName(string suffix)
         {
             return Prefix + suffix;

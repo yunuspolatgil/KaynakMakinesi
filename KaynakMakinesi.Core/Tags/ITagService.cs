@@ -27,15 +27,15 @@ namespace KaynakMakinesi.Core.Tags
         /// </summary>
         Task<Dictionary<string, TagReadResult>> ReadTagsAsync(IEnumerable<string> tagNames, CancellationToken ct = default);
 
-        /// <summary>
-        /// Tüm kayýtlý tag'larý listele
-        /// </summary>
-        List<TagDefinition> GetAllTags();
+        ///// <summary>
+        ///// Tüm kayýtlý tag'larý listele
+        ///// </summary>
+        //List<TagDefinition> GetAllTags();
 
-        /// <summary>
-        /// Gruba göre tag'larý listele
-        /// </summary>
-        List<TagDefinition> GetTagsByGroup(string groupName);
+        ///// <summary>
+        ///// Gruba göre tag'larý listele
+        ///// </summary>
+        //List<TagDefinition> GetTagsByGroup(string groupName);
 
         /// <summary>
         /// Tag'in son deðerini cache'den al (PLC'ye gitmez)

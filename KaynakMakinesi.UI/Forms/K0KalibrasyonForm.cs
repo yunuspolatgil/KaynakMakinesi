@@ -8,6 +8,7 @@ using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Motor;
 using KaynakMakinesi.Core.Plc.Service;
 using KaynakMakinesi.Core.Tags;
+using KaynakMakinesi.Core.Repositories;
 using KaynakMakinesi.UI.Controls;
 
 namespace KaynakMakinesi.UI.Forms
@@ -63,8 +64,9 @@ namespace KaynakMakinesi.UI.Forms
             IModbusService modbusService,
             ITagService tagService,
             IAppLogger logger,
-            IKalibrasyonService kalibrasyonService)
-            : base(MotorConfig.Presets.K0_TorcSag, modbusService, tagService, logger, kalibrasyonService)
+            IKalibrasyonService kalibrasyonService,
+            ITagEntityRepository tagRepo)
+            : base(MotorConfig.Presets.K0_TorcSag, modbusService, tagService, logger, kalibrasyonService, tagRepo)
         {
             this.Load += K0KalibrasyonForm_Load;
         }
@@ -747,16 +749,37 @@ namespace KaynakMakinesi.UI.Forms
         {
             try
             {
-                await WriteTagAsync("Ileri_Hiz", txtIleriHiz.GetIntValue());
-                await WriteTagAsync("Ileri_Rampa_Hiz", txtIleriRampaHiz.GetIntValue());
-                await WriteTagAsync("Ileri_Rampa_Yavas", txtIleriRampaYavas.GetIntValue());
+                _logger?.Info(GetType().Name, "?? ÝLERÝ hareket baþlatýlýyor...");
+                
+                // TAG YAZMALAR - SIKIRA SIKIRA LOG!
+                var hizSuccess = await WriteTagAsync("Ileri_Hiz", txtIleriHiz.GetIntValue());
+                _logger?.Info(GetType().Name, $"  Ileri_Hiz yazma: {(hizSuccess ? "?" : "?")}");
+                
+                var rampaHizSuccess = await WriteTagAsync("Ileri_Rampa_Hiz", txtIleriRampaHiz.GetIntValue());
+                _logger?.Info(GetType().Name, $"  Ileri_Rampa_Hiz yazma: {(rampaHizSuccess ? "?" : "?")}");
+                
+                var rampaYavasSuccess = await WriteTagAsync("Ileri_Rampa_Yavas", txtIleriRampaYavas.GetIntValue());
+                _logger?.Info(GetType().Name, $"  Ileri_Rampa_Yavas yazma: {(rampaYavasSuccess ? "?" : "?")}");
+                
                 await Task.Delay(50);
-                await WriteTagAsync("Ileri", true);
-                AddLog("?? Ýleri hareket baþladý");
+                
+                var ileriSuccess = await WriteTagAsync("Ileri", true);
+                _logger?.Info(GetType().Name, $"  Ileri (trigger) yazma: {(ileriSuccess ? "?" : "?")}");
+                
+                if (ileriSuccess)
+                {
+                    AddLog("?? Ýleri hareket baþladý");
+                }
+                else
+                {
+                    AddLog("? Ýleri hareket komutu yazýlamadý!");
+                    _logger?.Error(GetType().Name, "ÝLERÝ hareket komutu PLC'ye yazýlamadý! Tag Manager'da 'Motor_K0' grubunda 'Ileri' tag'ini kontrol edin.");
+                }
             }
             catch (Exception ex)
             {
                 AddLog($"? Ýleri hareket hatasý: {ex.Message}");
+                _logger?.Error(GetType().Name, "Ýleri hareket exception", ex);
             }
         }
 
@@ -764,16 +787,37 @@ namespace KaynakMakinesi.UI.Forms
         {
             try
             {
-                await WriteTagAsync("Geri_Hiz", txtGeriHiz.GetIntValue());
-                await WriteTagAsync("Geri_Rampa_Hiz", txtGeriRampaHiz.GetIntValue());
-                await WriteTagAsync("Geri_Rampa_Yavas", txtGeriRampaYavas.GetIntValue());
+                _logger?.Info(GetType().Name, "?? GERÝ hareket baþlatýlýyor...");
+                
+                // TAG YAZMALAR - SIKIRA SIKIRA LOG!
+                var hizSuccess = await WriteTagAsync("Geri_Hiz", txtGeriHiz.GetIntValue());
+                _logger?.Info(GetType().Name, $"  Geri_Hiz yazma: {(hizSuccess ? "?" : "?")}");
+                
+                var rampaHizSuccess = await WriteTagAsync("Geri_Rampa_Hiz", txtGeriRampaHiz.GetIntValue());
+                _logger?.Info(GetType().Name, $"  Geri_Rampa_Hiz yazma: {(rampaHizSuccess ? "?" : "?")}");
+                
+                var rampaYavasSuccess = await WriteTagAsync("Geri_Rampa_Yavas", txtGeriRampaYavas.GetIntValue());
+                _logger?.Info(GetType().Name, $"  Geri_Rampa_Yavas yazma: {(rampaYavasSuccess ? "?" : "?")}");
+                
                 await Task.Delay(50);
-                await WriteTagAsync("Geri", true);
-                AddLog("?? Geri hareket baþladý");
+                
+                var geriSuccess = await WriteTagAsync("Geri", true);
+                _logger?.Info(GetType().Name, $"  Geri (trigger) yazma: {(geriSuccess ? "?" : "?")}");
+                
+                if (geriSuccess)
+                {
+                    AddLog("?? Geri hareket baþladý");
+                }
+                else
+                {
+                    AddLog("? Geri hareket komutu yazýlamadý!");
+                    _logger?.Error(GetType().Name, "GERÝ hareket komutu PLC'ye yazýlamadý! Tag Manager'da 'Motor_K0' grubunda 'Geri' tag'ini kontrol edin.");
+                }
             }
             catch (Exception ex)
             {
                 AddLog($"? Geri hareket hatasý: {ex.Message}");
+                _logger?.Error(GetType().Name, "Geri hareket exception", ex);
             }
         }
 
@@ -781,21 +825,36 @@ namespace KaynakMakinesi.UI.Forms
         {
             try
             {
-                await WriteTagAsync("Ileri", false);
-                await WriteTagAsync("Geri", false);
-                AddLog("?? Hareket durduruldu");
+                _logger?.Info(GetType().Name, "? DUR komutu gönderiliyor...");
                 
-                // Manuel hareket tamamlandý, kalibrasyon grubunu aç
-                if (!grpKalibrasyon.Enabled)
+                var ileriSuccess = await WriteTagAsync("Ileri", false);
+                _logger?.Info(GetType().Name, $"  Ileri=FALSE yazma: {(ileriSuccess ? "?" : "?")}");
+                
+                var geriSuccess = await WriteTagAsync("Geri", false);
+                _logger?.Info(GetType().Name, $"  Geri=FALSE yazma: {(geriSuccess ? "?" : "?")}");
+                
+                if (ileriSuccess || geriSuccess)
                 {
-                    grpKalibrasyon.Enabled = true;
-                    UpdateDurum(KalibrasyonDurum.OlculenPozisyonGirisi);
-                    AddLog("?? Manuel hareket tamamlandý. Þimdi ölçülen pozisyon deðerini girin.");
+                    AddLog("? Hareket durduruldu");
+                    
+                    // Manuel hareket tamamlandý, kalibrasyon grubunu aç
+                    if (!grpKalibrasyon.Enabled)
+                    {
+                        grpKalibrasyon.Enabled = true;
+                        UpdateDurum(KalibrasyonDurum.OlculenPozisyonGirisi);
+                        AddLog("? Manuel hareket tamamlandý. Þimdi ölçülen pozisyon deðerini girin.");
+                    }
+                }
+                else
+                {
+                    AddLog("? Dur komutu yazýlamadý!");
+                    _logger?.Error(GetType().Name, "DUR komutu PLC'ye yazýlamadý!");
                 }
             }
             catch (Exception ex)
             {
                 AddLog($"? Dur komutu hatasý: {ex.Message}");
+                _logger?.Error(GetType().Name, "Dur komutu exception", ex);
             }
         }
 

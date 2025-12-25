@@ -10,6 +10,7 @@ using KaynakMakinesi.Core.Logging;
 using KaynakMakinesi.Core.Motor;
 using KaynakMakinesi.Core.Plc.Service;
 using KaynakMakinesi.Core.Tags;
+using KaynakMakinesi.Core.Repositories; // ?? Ekle
 
 namespace KaynakMakinesi.UI.Forms
 {
@@ -24,6 +25,7 @@ namespace KaynakMakinesi.UI.Forms
         protected readonly ITagService _tagService;
         protected readonly IAppLogger _logger;
         protected readonly IKalibrasyonService _kalibrasyonService;
+        protected readonly ITagEntityRepository _tagRepo; // ?? Repository ekle
         
         // Motor Configuration
         protected readonly MotorConfig _motorConfig;
@@ -52,13 +54,15 @@ namespace KaynakMakinesi.UI.Forms
             IModbusService modbusService,
             ITagService tagService,
             IAppLogger logger,
-            IKalibrasyonService kalibrasyonService)
+            IKalibrasyonService kalibrasyonService,
+            ITagEntityRepository tagRepo) // ?? Parametre ekle
         {
             _motorConfig = motorConfig ?? throw new ArgumentNullException(nameof(motorConfig));
             _modbusService = modbusService ?? throw new ArgumentNullException(nameof(modbusService));
             _tagService = tagService ?? throw new ArgumentNullException(nameof(tagService));
             _logger = logger;
             _kalibrasyonService = kalibrasyonService;
+            _tagRepo = tagRepo ?? throw new ArgumentNullException(nameof(tagRepo)); // ?? Ata
             
             try
             {
@@ -365,16 +369,46 @@ namespace KaynakMakinesi.UI.Forms
         {
             try
             {
-                var tagName = _motorConfig.GetTagName(tagSuffix);
+                // ?? FÝX: Tamamen DB-tabanlý - MotorConfig prefix'i kaldýr
+                // Direkt grup ve suffix ile tag'i DB'den bul
+                var groupName = _motorConfig.GroupName; // "Motor_K0"
                 
-                // Tag var mý kontrol et
-                if (_tagService == null)
+                _logger?.Debug(GetType().Name, $"?? ReadTagAsync: grup='{groupName}', suffix='{tagSuffix}'");
+                
+                if (_tagRepo == null)
                 {
-                    _logger?.Warn(GetType().Name, $"TagService null! Tag okunamadý: {tagName}");
+                    _logger?.Warn(GetType().Name, $"TagRepository null! Tag okunamadý: {tagSuffix}");
                     return (false, null);
                 }
                 
-                var result = await _tagService.ReadTagAsync(tagName, _cts?.Token ?? CancellationToken.None);
+                // ?? DB'den direkt grup ve suffix ile bul
+                var tag = _tagRepo.GetByGroupAndSuffix(groupName, tagSuffix);
+                
+                if (tag == null)
+                {
+                    // Tag bulunamadý, sadece critical tag'ler için warn
+                    if (IsCriticalTag(tagSuffix))
+                    {
+                        _logger?.Warn(GetType().Name, $"Kritik tag bulunamadý: grup='{groupName}', suffix='{tagSuffix}'");
+                        _logger?.Warn(GetType().Name, $"Tag Manager'da '{groupName}' grubunda '*{tagSuffix}' içeren bir tag ekleyin!");
+                    }
+                    return (false, null);
+                }
+                
+                // Tag bulundu - detay log
+                if (IsCriticalTag(tagSuffix))
+                {
+                    _logger?.Debug(GetType().Name, $"? Tag bulundu: Name='{tag.Name}', Address='{tag.Address}', DataType='{tag.DataType}'");
+                }
+                
+                // ModbusService ile oku
+                if (_modbusService == null)
+                {
+                    _logger?.Warn(GetType().Name, $"ModbusService null!");
+                    return (false, null);
+                }
+                
+                var result = await _modbusService.ReadAutoAsync(tag.Address, _cts?.Token ?? CancellationToken.None);
                 
                 if (result.Success)
                 {
@@ -382,10 +416,10 @@ namespace KaynakMakinesi.UI.Forms
                 }
                 else
                 {
-                    // Sadece kritik tag'ler için log, diðerleri sessiz baþarýsýz
+                    // Sadece kritik tag'ler için log
                     if (IsCriticalTag(tagSuffix))
                     {
-                        _logger?.Error(GetType().Name, $"Kritik tag okuma hatasý: {tagName} - {result.Error}");
+                        _logger?.Error(GetType().Name, $"Kritik tag okuma hatasý: {tag.Name} ({tag.Address}) - {result.Error}");
                     }
                     return (false, null);
                 }
@@ -400,7 +434,7 @@ namespace KaynakMakinesi.UI.Forms
                 // Sadece kritik tag'ler için log
                 if (IsCriticalTag(tagSuffix))
                 {
-                    _logger?.Error(GetType().Name, $"Tag okuma exception: {tagSuffix}", ex);
+                    _logger?.Error(GetType().Name, $"Tag okuma exception: suffix='{tagSuffix}'", ex);
                 }
                 return (false, null);
             }
@@ -411,27 +445,61 @@ namespace KaynakMakinesi.UI.Forms
         {
             try
             {
-                var tagName = _motorConfig.GetTagName(tagSuffix);
+                // ?? FÝX: Tamamen DB-tabanlý - MotorConfig prefix'i kaldýr
+                var groupName = _motorConfig.GroupName; // "Motor_K0"
                 
-                _logger?.Debug(GetType().Name, $"? WriteTagAsync: tagSuffix='{tagSuffix}' -> tagName='{tagName}', value={value}");
+                _logger?.Debug(GetType().Name, $"? WriteTagAsync: grup='{groupName}', suffix='{tagSuffix}', value={value}");
                 
-                if (_tagService == null)
+                if (_modbusService == null)
                 {
-                    _logger?.Error(GetType().Name, $"? TagService NULL! Tag yazýlamadý: {tagName}");
+                    _logger?.Error(GetType().Name, $"? ModbusService NULL!");
                     return false;
                 }
                 
-                _logger?.Debug(GetType().Name, $"? TagService.WriteTagAsync çaðrýlýyor: {tagName} = {value}");
+                if (_tagRepo == null)
+                {
+                    _logger?.Error(GetType().Name, $"? TagRepository NULL!");
+                    return false;
+                }
                 
-                var success = await _tagService.WriteTagAsync(tagName, value, _cts?.Token ?? CancellationToken.None);
+                // ?? DB'den direkt grup ve suffix ile bul
+                var tag = _tagRepo.GetByGroupAndSuffix(groupName, tagSuffix);
+                
+                if (tag == null)
+                {
+                    _logger?.Error(GetType().Name, $"? Tag bulunamadý: grup='{groupName}', suffix='{tagSuffix}'");
+                    _logger?.Error(GetType().Name, $"   Tag Manager'da '{groupName}' grubunda '*{tagSuffix}' içeren bir tag ekleyin!");
+                    _logger?.Error(GetType().Name, $"   Örnek tag adý: K0_{tagSuffix}, Motor_K0_{tagSuffix}, vb.");
+                    return false;
+                }
+                
+                // Tag bulundu, detaylarý logla
+                _logger?.Info(GetType().Name, $"? Tag bulundu: Name='{tag.Name}', Address='{tag.Address}', DataType='{tag.DataType}', ReadOnly={tag.ReadOnly}");
+                
+                if (tag.ReadOnly)
+                {
+                    _logger?.Warn(GetType().Name, $"?? Tag ReadOnly! Yazma iþlemi yapýlamaz: {tag.Name}");
+                    return false;
+                }
+                
+                // ?? TAG MANAGER GÝBÝ: Doðrudan ModbusService.WriteTextAsync kullan
+                var valueText = value?.ToString() ?? "0";
+                
+                _logger?.Info(GetType().Name, $"?? ModbusService.WriteTextAsync çaðrýlýyor:");
+                _logger?.Info(GetType().Name, $"   Address: '{tag.Address}'");
+                _logger?.Info(GetType().Name, $"   Value Text: '{valueText}'");
+                _logger?.Info(GetType().Name, $"   DataType: '{tag.DataType}'");
+                
+                var success = await _modbusService.WriteTextAsync(tag.Address, valueText, _cts?.Token ?? CancellationToken.None);
                 
                 if (success)
                 {
-                    _logger?.Info(GetType().Name, $"? Tag yazma BAÞARILI: {tagName} = {value}");
+                    _logger?.Info(GetType().Name, $"? Tag yazma BAÞARILI: {tag.Name} ({tag.Address}) = {valueText}");
                 }
                 else
                 {
-                    _logger?.Error(GetType().Name, $"? Tag yazma BAÞARISIZ: {tagName} = {value}");
+                    _logger?.Error(GetType().Name, $"? Tag yazma BAÞARISIZ: {tag.Name} ({tag.Address}) = {valueText}");
+                    _logger?.Error(GetType().Name, $"   ModbusService.WriteTextAsync FALSE döndü!");
                 }
                 
                 return success;
@@ -443,7 +511,7 @@ namespace KaynakMakinesi.UI.Forms
             }
             catch (Exception ex)
             {
-                _logger?.Error(GetType().Name, $"? Tag yazma EXCEPTION: {tagSuffix} = {value}", ex);
+                _logger?.Error(GetType().Name, $"? Tag yazma EXCEPTION: suffix='{tagSuffix}', value={value}", ex);
                 return false;
             }
         }
@@ -663,8 +731,28 @@ namespace KaynakMakinesi.UI.Forms
         {
             if (disposing)
             {
-                _cts?.Cancel();
-                _cts?.Dispose();
+                try
+                {
+                    // Önce cancel et, sonra dispose et
+                    if (_cts != null && !_cts.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            _cts.Cancel();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Zaten dispose edilmiþ, ignore
+                        }
+                    }
+                    
+                    _cts?.Dispose();
+                    _cts = null;
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error(GetType().Name, "Dispose hatasý", ex);
+                }
             }
             base.Dispose(disposing);
         }

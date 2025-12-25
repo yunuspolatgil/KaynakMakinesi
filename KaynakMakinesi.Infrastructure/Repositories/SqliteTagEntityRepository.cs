@@ -603,6 +603,96 @@ WHERE Id = @Id;";
             }
         }
         
+        /// <summary>
+        /// ?? Grup ve suffix'e göre tag getirir
+        /// Örnek: GetByGroupAndSuffix("Motor_K0", "Home_Hiz") 
+        ///   -> "K0_Home_Hiz", "Motor_K0_Home_Hiz", "Home_Hiz" gibi tag'leri bulur
+        /// 
+        /// ?? FÝX: Suffix contains aramasý yapýlýr (case-insensitive)
+        /// Örnek: suffix="Ileri" -> "K0_Ileri", "K0_Ileri_Hiz", "Motor_K0_Ileri" hepsi bulunur
+        /// </summary>
+        public TagEntity GetByGroupAndSuffix(string groupName, string suffix)
+        {
+            if (string.IsNullOrWhiteSpace(suffix))
+                return null;
+            
+            // Önce grup içinde suffix ile biten tag'leri ara
+            var groupTags = GetByGroup(groupName);
+            
+            if (!groupTags.Any())
+            {
+                // Grup boþ, hiç tag yok
+                return null;
+            }
+            
+            var suffixLower = suffix.ToLowerInvariant();
+            
+            // ONCELIK 1: Tam eþleþme (case-insensitive)
+            // Örnek: suffix="Ileri" -> Name="Ileri" (birebir eþleþme)
+            var exactMatch = groupTags.FirstOrDefault(t => 
+                t.Name.Equals(suffix, StringComparison.OrdinalIgnoreCase));
+            
+            if (exactMatch != null)
+                return exactMatch;
+            
+            // ONCELIK 2: Suffix ile biten tag'ler (underscore ile)
+            // Örnek: suffix="Ileri" -> Name="K0_Ileri" ?
+            var endsWith = groupTags.FirstOrDefault(t => 
+                t.Name.ToLowerInvariant().EndsWith("_" + suffixLower));
+            
+            if (endsWith != null)
+                return endsWith;
+            
+            // ONCELIK 3: Contains (içerir) - en esnek
+            // Örnek: suffix="Ileri" -> Name="K0_Ileri_Hiz" ?
+            //        suffix="Home" -> Name="K0_Home_Git" ?
+            // ?? Ancak: Önce underscore ile baþlayan içerenleri tercih et
+            //    Örnek: suffix="Home" -> "_Home_" içeren önce bulunur
+            var containsWithUnderscore = groupTags.FirstOrDefault(t => 
+                t.Name.ToLowerInvariant().Contains("_" + suffixLower + "_") ||
+                t.Name.ToLowerInvariant().Contains("_" + suffixLower));
+            
+            if (containsWithUnderscore != null)
+                return containsWithUnderscore;
+            
+            // ONCELIK 4: Contains (herhangi bir yerde)
+            return groupTags.FirstOrDefault(t => 
+                t.Name.ToLowerInvariant().Contains(suffixLower));
+        }
+        
+        /// <summary>
+        /// ?? Ýsmin sonunda verilen suffix'i içeren tag'leri getirir
+        /// Örnek: GetBySuffix("Home_Hiz") -> "K0_Home_Hiz", "K1_Home_Hiz", vb.
+        /// </summary>
+        public IEnumerable<TagEntity> GetBySuffix(string suffix)
+        {
+            if (string.IsNullOrWhiteSpace(suffix))
+                return Enumerable.Empty<TagEntity>();
+            
+            var list = new List<TagEntity>();
+            
+            using (var con = (SQLiteConnection)_db.Open())
+            using (var cmd = con.CreateCommand())
+            {
+                cmd.CommandText = @"
+SELECT Id, Name, Address, DataType, GroupName, MetadataJson, 
+       CreatedAt, UpdatedAt, IsActive, CreatedBy, UpdatedBy
+FROM TagEntities
+WHERE (Name LIKE '%' || @Suffix COLLATE NOCASE) AND IsActive = 1
+ORDER BY Name COLLATE NOCASE;";
+                
+                cmd.Parameters.AddWithValue("@Suffix", suffix.Trim());
+                
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                        list.Add(MapFromReader(r));
+                }
+            }
+            
+            return list;
+        }
+        
         #endregion
         
         #region Helper Methods

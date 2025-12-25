@@ -50,7 +50,6 @@
     <Compile Include="Jobs\JobModels.cs" />
     <Compile Include="Logging\LogModels.cs" />
     <Compile Include="Model\TagEntityRow.cs" />
-    <Compile Include="Model\TagRow.cs" />
     <Compile Include="Motor\IKalibrasyonService.cs" />
     <Compile Include="Motor\KalibrasyonDurum.cs" />
     <Compile Include="Motor\KalibrasyonLog.cs" />
@@ -67,9 +66,7 @@
     <Compile Include="Repositories\IRepository.cs" />
     <Compile Include="Repositories\ITagEntityRepository.cs" />
     <Compile Include="Settings\AppSettings.cs" />
-    <Compile Include="Tags\ITagRepository.cs" />
     <Compile Include="Tags\ITagService.cs" />
-    <Compile Include="Tags\TagDefinition.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

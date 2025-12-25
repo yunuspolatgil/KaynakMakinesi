@@ -125,7 +125,8 @@ namespace KaynakMakinesi.UI
                     _modbusService, 
                     _tagService, 
                     _log, 
-                    Program.KalibrasyonService))
+                    Program.KalibrasyonService,
+                    _tagRepo)) // 🆕 TagRepo ekle
                 {
                     frm.ShowDialog(this);
                 }
@@ -143,7 +144,29 @@ namespace KaynakMakinesi.UI
 
         private void btnAddressTest_ItemClick(object sender, ItemClickEventArgs e)
         {
-          
+            // Log Viewer'ı aç
+            try
+            {
+                var appFolder = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "KaynakMakinesi");
+                
+                var dbPath = System.IO.Path.Combine(appFolder, "app.db");
+                
+                using (var frm = new Forms.FrmLogViewer(dbPath))
+                {
+                    frm.ShowDialog(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log?.Error(nameof(FrmAnaForm), "Log Viewer açma hatası", ex);
+                DevExpress.XtraEditors.XtraMessageBox.Show(
+                    $"Log Viewer açılamadı:\n{ex.Message}",
+                    "Hata",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Error);
+            }
         }
     }
 }

@@ -19,8 +19,10 @@ namespace KaynakMakinesi.Application.Tags
         private readonly IAppLogger _logger;
         
         // Cache için thread-safe koleksiyonlar
-        private readonly ConcurrentDictionary<string, TagReadResult> _cache = new ConcurrentDictionary<string, TagReadResult>();
-        private readonly ConcurrentDictionary<string, TagEntity> _tagDefinitions = new ConcurrentDictionary<string, TagEntity>();
+        private readonly ConcurrentDictionary<string, TagReadResult> _cache = 
+            new ConcurrentDictionary<string, TagReadResult>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, TagEntity> _tagDefinitions = 
+            new ConcurrentDictionary<string, TagEntity>(StringComparer.OrdinalIgnoreCase);
         
         public event EventHandler<TagUpdatedEventArgs> TagUpdated;
 
@@ -257,22 +259,6 @@ namespace KaynakMakinesi.Application.Tags
             return results;
         }
 
-        public List<TagDefinition> GetAllTags()
-        {
-            RefreshTagDefinitions();
-            // TagEntity -> TagDefinition dönüþümü (backward compatibility için)
-            return _tagDefinitions.Values.Select(MapToLegacyDefinition).ToList();
-        }
-
-        public List<TagDefinition> GetTagsByGroup(string groupName)
-        {
-            RefreshTagDefinitions();
-            return _tagDefinitions.Values
-                .Where(t => string.Equals(t.GroupName, groupName, StringComparison.OrdinalIgnoreCase))
-                .Select(MapToLegacyDefinition)
-                .ToList();
-        }
-
         public TagReadResult GetCachedValue(string tagName)
         {
             if (string.IsNullOrWhiteSpace(tagName))
@@ -325,26 +311,6 @@ namespace KaynakMakinesi.Application.Tags
             {
                 _logger?.Error(nameof(TagService), "Tag tanýmlarý yenilenirken hata", ex);
             }
-        }
-        
-        /// <summary>
-        /// TagEntity -> TagDefinition (backward compatibility için)
-        /// </summary>
-        private TagDefinition MapToLegacyDefinition(TagEntity entity)
-        {
-            return new TagDefinition
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Address = entity.Address,
-                TypeOverride = entity.DataType,
-                GroupName = entity.GroupName,
-                Description = entity.Description,
-                PollMs = entity.PollMs,
-                ReadOnly = entity.ReadOnly,
-                Scale = entity.Scale,
-                Offset = entity.Offset
-            };
         }
     }
 }

@@ -95,6 +95,9 @@
     <Compile Include="Forms\BaseKalibrasyonForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\FrmLogViewer.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Forms\K0KalibrasyonForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -116,7 +119,6 @@
     <Compile Include="FrmTorcSag.Designer.cs">
       <DependentUpon>FrmTorcSag.cs</DependentUpon>
     </Compile>
-    <Compile Include="KaynakMakinesi\Infrastructure\Tags\TagEntity.cs" />
     <Compile Include="FrmAcilisForm.cs">
       <SubType>Form</SubType>
     </Compile>

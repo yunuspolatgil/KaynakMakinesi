@@ -20,6 +20,18 @@ namespace KaynakMakinesi.Core.Repositories
         IEnumerable<TagEntity> GetByGroup(string groupName);
         
         /// <summary>
+        /// ?? Grup ve suffix'e göre tag getirir
+        /// Örnek: GetByGroupAndSuffix("Motor_K0", "Home_Hiz") -> "K0_Home_Hiz" veya "Motor_K0_Home_Hiz" gibi tag'leri bulur
+        /// </summary>
+        TagEntity GetByGroupAndSuffix(string groupName, string suffix);
+        
+        /// <summary>
+        /// ?? Ýsmin sonunda verilen suffix'i içeren tag'leri getirir
+        /// Örnek: GetBySuffix("Home_Hiz") -> "K0_Home_Hiz", "K1_Home_Hiz", vb.
+        /// </summary>
+        IEnumerable<TagEntity> GetBySuffix(string suffix);
+        
+        /// <summary>
         /// Veri tipine göre tag'leri getirir
         /// </summary>
         IEnumerable<TagEntity> GetByDataType(string dataType);
