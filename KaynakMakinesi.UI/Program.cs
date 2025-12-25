@@ -1,5 +1,4 @@
-﻿using KaynakMakinesi.Application.Jobs;
-using KaynakMakinesi.Application.Plc.Addressing;
+﻿using KaynakMakinesi.Application.Plc.Addressing;
 using KaynakMakinesi.Application.Plc.Codec;
 using KaynakMakinesi.Application.Plc.Service;
 using KaynakMakinesi.Application.Tags;
@@ -12,7 +11,6 @@ using KaynakMakinesi.Core.Settings;
 using KaynakMakinesi.Core.Repositories;
 using KaynakMakinesi.Core.Tags;
 using KaynakMakinesi.Infrastructure.Db;
-using KaynakMakinesi.Infrastructure.Jobs;
 using KaynakMakinesi.Infrastructure.Logging;
 using KaynakMakinesi.Infrastructure.Motor;
 using KaynakMakinesi.Infrastructure.Plc;
@@ -86,7 +84,7 @@ namespace KaynakMakinesi.UI
 
                 var db = new SqliteDb(appFolder, settings.Database.FileName);
 
-                // YENİ: TagEntity Repository
+                // TagEntity Repository
                 var tagRepo = new SqliteTagEntityRepository(db);
                 
                 // Kalibrasyon repository ve service
@@ -105,9 +103,6 @@ namespace KaynakMakinesi.UI
                 var plcClient = new ModbusPlcClient(logger);
                 var supervisor = new PlcConnectionSupervisor(settingsStore, plcClient, logger);
 
-                var jobRepo = new SqliteJobRepository(db);
-                var runner = new JobRunner(jobRepo, supervisor, plcClient, logger);
-
                 IAddressResolver resolver = new AddressResolver(profile, tagRepo);
                 
                 var codec = new ModbusCodec
@@ -121,17 +116,15 @@ namespace KaynakMakinesi.UI
 
                 ITagService tagService = new TagService(tagRepo, modbusService, logger);
                 
-                // Motor tag'lerini oluştur (eğer yoksa)
+                // Motor tag'lerini kontrol et
                 EnsureMotorTags(tagRepo, logger);
 
                 logger.Info("Program", $"Uygulama başlatıldı. Database: {db.DbPath}");
 
                 supervisor.Start();
-                runner.Start();
 
                 System.Windows.Forms.Application.ApplicationExit += (s, e) =>
                 {
-                    try { runner.Stop(); } catch { }
                     try { supervisor.Stop(); } catch { }
                     try { plcClient.DisconnectAsync(CancellationToken.None).Wait(500); } catch { }
                     try { plcClient.Dispose(); } catch { }
@@ -149,17 +142,14 @@ namespace KaynakMakinesi.UI
         }
         
         /// <summary>
-        /// Motor tag'lerini kontrol eder ve yoksa oluşturur
+        /// Motor tag'lerini kontrol eder
         /// NOT: Tag'ler artık hardcode edilmiyor!
-        /// Tag'leri Tag Manager'dan import edin (tag.json)
+        /// Tag'leri Tag Manager'dan import edin
         /// </summary>
         private static void EnsureMotorTags(ITagEntityRepository tagRepo, IAppLogger logger)
         {
             try
             {
-                // Motor tag'leri artık otomatik oluşturulmuyor
-                // Tag'ler SQLite veritabanında olmalı (Tag Manager ile import edilmeli)
-                
                 var allTags = tagRepo.GetAll();
                 logger.Info("Program", $"Veritabanında {allTags.Count()} adet tag bulundu");
                 

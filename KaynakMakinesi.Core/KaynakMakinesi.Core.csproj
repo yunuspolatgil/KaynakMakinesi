@@ -47,7 +47,6 @@
     <Compile Include="Abstractions\ISettingsStore.cs" />
     <Compile Include="Entities\EntityBase.cs" />
     <Compile Include="Entities\TagEntity.cs" />
-    <Compile Include="Jobs\JobModels.cs" />
     <Compile Include="Logging\LogModels.cs" />
     <Compile Include="Model\TagEntityRow.cs" />
     <Compile Include="Motor\IKalibrasyonService.cs" />
